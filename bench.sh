@@ -595,7 +595,7 @@ show_welcome() {
     echo -e "${colors[0]}  _____   _______   _____               ${NC}"
     echo -e "${colors[1]} |_   _| |__   __| |  __ \              ${NC}"
     echo -e "${colors[2]}   | |      | |    | |  | | ___   __ _  ${NC}"
-    echo -e "${colors[3]}   | |      | |    | |  | |/ _\\ / _  | ${NC}"
+    echo -e "${colors[3]}   | |      | |    | |  | |/ _ \\ / _  | ${NC}"
     echo -e "${colors[4]}  _| |_     | |    | |__| | (_) | (_| | ${NC}"
     echo -e "${colors[5]} |_____|    |_|    |_____/ \___/ \__, | ${NC}"
     echo -e "${colors[6]}                                  __/ | ${NC}"
