@@ -25,7 +25,7 @@ colors=(
 # Update script
 update_scripts() {
     echo -e "${BLUE}┌─────────────────────────────────────────┐${NC}"
-    echo -e "${BLUE}│           NodeLoc VPS Test Script       │${NC}"
+    echo -e "${BLUE}│           VPS Test Script               │${NC}"
     echo -e "${BLUE}│               Version Check             │${NC}"
     echo -e "${BLUE}└─────────────────────────────────────────┘${NC}"
 
@@ -502,7 +502,7 @@ run_all_scripts() {
 run_selected_scripts() {
     clear
     local base_output_file="NLvps_results_$(date +%Y%m%d_%H%M%S)"
-    echo -e "${YELLOW}Nodeloc VPS Automatic Test Script $VERSION${NC}"
+    echo -e "${YELLOW}VPS Automatic Test Script $VERSION${NC}"
     echo "1. Yabs"
     echo "2. IP Quality"
     echo "3. Streaming Unlock"
@@ -569,7 +569,7 @@ main_menu() {
             run_selected_scripts
             ;;
         0)
-            echo -e "${RED}Thank you for using the NodeLoc Aggregate Test Script. Exiting now, looking forward to your next use!${NC}"
+            echo -e "${RED}Thank you for using the Aggregate Test Script. Exiting now, looking forward to your next use!${NC}"
             exit 0
             ;;
         *)
@@ -586,23 +586,26 @@ main_menu() {
 # Display welcome message
 show_welcome() {
     echo ""
-    echo -e "${RED}---------------------------------By'Jensfrank---------------------------------${NC}"
+    echo -e "${RED}---------------------------------By'Xe9omorph---------------------------------${NC}"
     echo ""
-    echo -e "${GREEN}Nodeloc Aggregate Test Script $CURRENT_VERSION ${NC}"
-    echo -e "${GREEN}GitHub Address: https://github.com/nodeloc/nodeloc_vps_test${NC}"
-    echo -e "${GREEN}Nodeloc Community: https://www.nodeloc.com/${NC}"
+    echo -e "${GREEN}ITDog Aggregate Test Script $CURRENT_VERSION ${NC}"
+    echo -e "${GREEN}GitHub Address: https://github.com/itdoginfo/podkop${NC}"
+    echo -e "${GREEN}ITDog Community: https://t.me/itdogchat${NC}"
     echo ""
-    echo -e "${colors[0]}  _   _  ___  ____  _____ _     ___   ____   __     ______  ____  ${NC}"
-    echo -e "${colors[1]} | \ | |/ _ \|  _ \| ____| |   / _ \ / ___|  \ \   / /  _ \/ ___| ${NC}"
-    echo -e "${colors[2]} |  \| | | | | | | |  _| | |  | | | | |       \ \ / /| |_) \___ \ ${NC}"
-    echo -e "${colors[3]} | |\  | |_| | |_| | |___| |__| |_| | |___     \ V / |  __/ ___) |${NC}"
-    echo -e "${colors[4]} |_| \_|\___/|____/|_____|_____\___/ \____|     \_/  |_|   |____/ ${NC}"
-    echo ""
+	echo -e "${colors[0]}  _____   _______   _____               ${NC}"
+	echo -e "${colors[1]} |_   _| |__   __| |  __ \              ${NC}"
+	echo -e "${colors[2]}   | |      | |    | |  | | ___   __ _  ${NC}"
+	echo -e "${colors[3]}   | |      | |    | |  | |//_\\ //_  | ${NC}"
+	echo -e "${colors[4]}  _| |_     | |    | |__| | (_) | (_| | ${NC}"
+	echo -e "${colors[5]} |_____|    |_|    |_____/ \___/ \__, | ${NC}"
+	echo -e "${colors[6]}                                  __/ | ${NC}"
+	echo -e "${colors[7]}                                 |___/  ${NC}"
+	echo ""
     echo "Supports Ubuntu/Debian"
     echo ""
     echo -e "Today's Run Count: ${RED}$daily_count${NC} times, Total Run Count: ${RED}$total_count${NC} times"
     echo ""
-    echo -e "${RED}---------------------------------By'Jensfrank---------------------------------${NC}"
+    echo -e "${RED}---------------------------------By'Xe9omorph---------------------------------${NC}"
     echo ""
 }
 
