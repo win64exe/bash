@@ -74,20 +74,23 @@ EOL'
         return 1
     fi
 
-    # Настройка NAT
-    INTERFACE=$(ip route get 8.8.8.8 | awk '{print $5; exit}')
-    sudo iptables -t nat -A POSTROUTING -s 10.2.2.0/24 -o "$INTERFACE" -j MASQUERADE
-    if [ $? -ne 0 ]; then
-        echo -e "${RED}Ошибка при настройке NAT!${NC}"
-        return 1
-    fi
+# Настройка NAT
+INTERFACE=$(ip route get 8.8.8.8 | awk '{print $5; exit}')
+sudo iptables -t nat -A POSTROUTING -s 10.2.2.0/24 -o "$INTERFACE" -j MASQUERADE
+if [ $? -ne 0 ]; then
+    echo -e "${RED}Ошибка при настройке NAT!${NC}"
+    return 1
+fi
 
-    # Сохранение правил iptables
-    sudo sh -c "iptables-save > /etc/iptables/rules.v4"
-    if [ $? -ne 0 ]; then
-        echo -e "${RED}Ошибка при сохранении правил iptables!${NC}"
-        return 1
-    fi
+# Создание директории /etc/iptables/
+sudo mkdir -p /etc/iptables/
+
+# Сохранение правил iptables
+sudo sh -c "iptables-save > /etc/iptables/rules.v4"
+if [ $? -ne 0 ]; then
+    echo -e "${RED}Ошибка при сохранении правил iptables!${NC}"
+    return 1
+fi
 
     # Включение IP forwarding
     sudo sysctl -w net.ipv4.ip_forward=1
