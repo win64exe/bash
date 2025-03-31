@@ -226,30 +226,36 @@ remove_xl2tpd() {
 }
 
 # Основное меню
-echo -e "${LIGHT_BLUE}Выберите действие:${NC}"
-echo -e "${GREEN}1. Установить${NC}    ${YELLOW}(1)${NC}"
-echo -e "${GREEN}2. Добавить пользователя L2TP${NC} ${YELLOW}(2)${NC}"
-echo -e "${GREEN}3. Удалить пользователя${NC}    ${YELLOW}(3)${NC}"
-echo -e "${GREEN}4. Удалить xl2tpd${NC}      ${YELLOW}(4)${NC}"
-read -p "Введите номер действия (1-4): " choice
+show_menu() {
+    echo -e "${LIGHT_BLUE}Выберите действие:${NC}"
+    echo -e "${GREEN}1. Установить${NC}    ${YELLOW}(1)${NC}"
+    echo -e "${GREEN}2. Добавить пользователя L2TP${NC} ${YELLOW}(2)${NC}"
+    echo -e "${GREEN}3. Удалить пользователя${NC}    ${YELLOW}(3)${NC}"
+    echo -e "${GREEN}4. Удалить xl2tpd${NC}      ${YELLOW}(4)${NC}"
+    read -p "Введите номер действия (1-4): " choice
+}
 
-case $choice in
-    1)
-        install_xl2tpd
-        ;;
-    2)
-        add_user
-        ;;
-    3)
-        remove_user
-        ;;
-    4)
-        remove_xl2tpd
-        ;;
-    "") # Если ввод пустой, выполняем установку
-        install_xl2tpd
-        ;;
-    *)
-        echo -e "${RED}Неверный выбор! Пожалуйста, выберите 1, 2, 3 или 4.${NC}"
-        ;;
-esac
+# Основной цикл
+while true; do
+    show_menu
+    case $choice in
+        1)
+            install_xl2tpd
+            ;;
+        2)
+            add_user
+            ;;
+        3)
+            remove_user
+            ;;
+        4)
+            remove_xl2tpd
+            ;;
+        "") # Если ввод пустой, выполняем установку
+            install_xl2tpd
+            ;;
+        *)
+            echo -e "${RED}Неверный выбор! Пожалуйста, выберите 1, 2, 3 или 4.${NC}"
+            ;;
+    esac
+done
