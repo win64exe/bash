@@ -258,4 +258,6 @@ while true; do
             echo -e "${RED}Неверный выбор! Пожалуйста, выберите 1, 2, 3 или 4.${NC}"
             ;;
     esac
+    read -n 1 -s -r -p "Нажмите Enter для продолжения..."
+    echo ""
 done
