@@ -1,15 +1,15 @@
 #!/bin/bash
 
-# Цветовые коды
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-RED='\033[0;31m'
+# Яркие цветовые коды
+BRIGHT_GREEN='\033[1;92m'
+BRIGHT_YELLOW='\033[1;93m'
+BRIGHT_BLUE='\033[1;94m'
+BRIGHT_RED='\033[1;91m'
 NC='\033[0m' # Сброс цвета
 
 # Проверка на root
 if [ "$(id -u)" -ne 0 ]; then
-    echo -e "${RED}Этот скрипт должен быть запущен с правами root!${NC}"
+    echo -e "${BRIGHT_RED}Этот скрипт должен быть запущен с правами root!${NC}"
     exit 1
 fi
 
@@ -22,24 +22,24 @@ show_credentials() {
     local username=$1
     local password=$2
     
-    echo -e "\n${GREEN}=== ДАННЫЕ ДЛЯ ПОДКЛЮЧЕНИЯ ===${NC}"
-    echo -e "${BLUE}IP сервера:${NC} $SERVER_IP"
-    echo -e "${BLUE}Логин:${NC} $username"
-    echo -e "${BLUE}Пароль:${NC} $password"
-    echo -e "${GREEN}===========================${NC}"
+    echo -e "\n${BRIGHT_GREEN}=== ДАННЫЕ ДЛЯ ПОДКЛЮЧЕНИЯ ===${NC}"
+    echo -e "${BRIGHT_BLUE}IP сервера:${NC} $SERVER_IP"
+    echo -e "${BRIGHT_BLUE}Логин:${NC} $username"
+    echo -e "${BRIGHT_BLUE}Пароль:${NC} $password"
+    echo -e "${BRIGHT_GREEN}===========================${NC}"
 }
 
 # Функция для установки xl2tpd
 install_xl2tpd() {
-    echo -e "${BLUE}Установка xl2tpd и необходимых компонентов...${NC}"
+    echo -e "${BRIGHT_BLUE}Установка xl2tpd и необходимых компонентов...${NC}"
     
     if ! sudo apt update; then
-        echo -e "${RED}Ошибка при обновлении пакетов!${NC}"
+        echo -e "${BRIGHT_RED}Ошибка при обновлении пакетов!${NC}"
         exit 1
     fi
     
     if ! sudo apt install -y xl2tpd iptables; then
-        echo -e "${RED}Ошибка при установке пакетов!${NC}"
+        echo -e "${BRIGHT_RED}Ошибка при установке пакетов!${NC}"
         exit 1
     fi
 
@@ -87,7 +87,7 @@ EOL'
     sudo chmod 600 /etc/ppp/chap-secrets
 
     # Настройка NAT
-    echo -e "${YELLOW}Используется интерфейс: $DEFAULT_IFACE${NC}"
+    echo -e "${BRIGHT_YELLOW}Используется интерфейс: $DEFAULT_IFACE${NC}"
     sudo iptables -t nat -A POSTROUTING -s 10.2.2.0/24 -o $DEFAULT_IFACE -j MASQUERADE
     
     # Сохранение правил iptables
@@ -102,22 +102,22 @@ EOL'
     sudo systemctl restart xl2tpd
     sudo systemctl enable xl2tpd
 
-    echo -e "${GREEN}Установка завершена успешно!${NC}"
+    echo -e "${BRIGHT_GREEN}Установка завершена успешно!${NC}"
 }
 
 # Функция для добавления пользователя
 add_user() {
-    echo -e "${BLUE}Добавление нового пользователя L2TP...${NC}"
+    echo -e "${BRIGHT_BLUE}Добавление нового пользователя L2TP...${NC}"
     
     while true; do
         read -p "Введите имя пользователя: " username
         if [ -z "$username" ]; then
-            echo -e "${RED}Имя пользователя не может быть пустым!${NC}"
+            echo -e "${BRIGHT_RED}Имя пользователя не может быть пустым!${NC}"
             continue
         fi
         
         if grep -q "^$username " /etc/ppp/chap-secrets; then
-            echo -e "${YELLOW}Пользователь $username уже существует!${NC}"
+            echo -e "${BRIGHT_YELLOW}Пользователь $username уже существует!${NC}"
             read -p "Хотите изменить пароль для этого пользователя? (y/n): " change
             if [[ "$change" =~ ^[YyДд] ]]; then
                 sudo sed -i "/^$username /d" /etc/ppp/chap-secrets
@@ -132,14 +132,14 @@ add_user() {
         read -s -p "Введите пароль: " password
         echo
         if [ -z "$password" ]; then
-            echo -e "${RED}Пароль не может быть пустым!${NC}"
+            echo -e "${BRIGHT_RED}Пароль не может быть пустым!${NC}"
             continue
         fi
         
         read -s -p "Повторите пароль: " password_confirm
         echo
         if [ "$password" != "$password_confirm" ]; then
-            echo -e "${RED}Пароли не совпадают!${NC}"
+            echo -e "${BRIGHT_RED}Пароли не совпадают!${NC}"
             continue
         fi
         break
@@ -155,14 +155,14 @@ add_user() {
 
 # Функция для удаления пользователя
 remove_user() {
-    echo -e "${BLUE}Удаление пользователя L2TP...${NC}"
+    echo -e "${BRIGHT_BLUE}Удаление пользователя L2TP...${NC}"
     
     if [ ! -f /etc/ppp/chap-secrets ] || [ ! -s /etc/ppp/chap-secrets ]; then
-        echo -e "${RED}Файл chap-secrets пуст или не существует!${NC}"
+        echo -e "${BRIGHT_RED}Файл chap-secrets пуст или не существует!${NC}"
         return 1
     fi
     
-    echo -e "${BLUE}Список пользователей:${NC}"
+    echo -e "${BRIGHT_BLUE}Список пользователей:${NC}"
     echo "----------------------------------------"
     awk '$2 == "l2tp-vpn" {print "Имя пользователя: " $1}' /etc/ppp/chap-secrets
     echo "----------------------------------------"
@@ -177,25 +177,25 @@ remove_user() {
         if grep -q "^$username " /etc/ppp/chap-secrets; then
             sudo sed -i "/^$username /d" /etc/ppp/chap-secrets
             sudo systemctl restart xl2tpd
-            echo -e "${GREEN}Пользователь $username успешно удален!${NC}"
+            echo -e "${BRIGHT_GREEN}Пользователь $username успешно удален!${NC}"
             return 0
         else
-            echo -e "${RED}Пользователь $username не найден!${NC}"
+            echo -e "${BRIGHT_RED}Пользователь $username не найден!${NC}"
         fi
     done
 }
 
 # Функция для удаления xl2tpd
 remove_xl2tpd() {
-    echo -e "${YELLOW}Внимание! Будут удалены все настройки xl2tpd!${NC}"
+    echo -e "${BRIGHT_YELLOW}Внимание! Будут удалены все настройки xl2tpd!${NC}"
     read -p "Вы уверены, что хотите продолжить? (y/n): " confirm
     
     if [[ ! "$confirm" =~ ^[YyДд] ]]; then
-        echo -e "${BLUE}Удаление отменено.${NC}"
+        echo -e "${BRIGHT_BLUE}Удаление отменено.${NC}"
         return
     fi
 
-    echo -e "${BLUE}Удаление xl2tpd...${NC}"
+    echo -e "${BRIGHT_BLUE}Удаление xl2tpd...${NC}"
 
     sudo systemctl stop xl2tpd 2>/dev/null
     sudo systemctl disable xl2tpd 2>/dev/null
@@ -215,17 +215,17 @@ remove_xl2tpd() {
     sudo sysctl -w net.ipv4.ip_forward=0
     sudo sed -i 's/net.ipv4.ip_forward=1/#net.ipv4.ip_forward=1/' /etc/sysctl.conf
 
-    echo -e "${GREEN}xl2tpd успешно удален!${NC}"
+    echo -e "${BRIGHT_GREEN}xl2tpd успешно удален!${NC}"
 }
 
 # Главное меню
 while true; do
-    echo -e "\n${BLUE}Выберите действие:${NC}"
-    echo -e "${GREEN}1. Установить xl2tpd${NC}           ${YELLOW}(1)${NC}"
-    echo -e "${GREEN}2. Добавить пользователя L2TP${NC} ${YELLOW}(2)${NC}"
-    echo -e "${GREEN}3. Удалить пользователя${NC}       ${YELLOW}(3)${NC}"
-    echo -e "${GREEN}4. Удалить xl2tpd${NC}            ${YELLOW}(4)${NC}"
-    echo -e "${GREEN}5. Выход${NC}                     ${YELLOW}(5)${NC}"
+    echo -e "\n${BRIGHT_BLUE}Выберите действие:${NC}"
+    echo -e "${BRIGHT_GREEN}1. Установить xl2tpd${NC}           ${BRIGHT_YELLOW}(1)${NC}"
+    echo -e "${BRIGHT_GREEN}2. Добавить пользователя L2TP${NC} ${BRIGHT_YELLOW}(2)${NC}"
+    echo -e "${BRIGHT_GREEN}3. Удалить пользователя${NC}       ${BRIGHT_YELLOW}(3)${NC}"
+    echo -e "${BRIGHT_GREEN}4. Удалить xl2tpd${NC}            ${BRIGHT_YELLOW}(4)${NC}"
+    echo -e "${BRIGHT_GREEN}5. Выход${NC}                     ${BRIGHT_YELLOW}(5)${NC}"
     read -p "Введите номер действия (1-5): " choice
 
     case $choice in
@@ -242,11 +242,11 @@ while true; do
             remove_xl2tpd
             ;;
         5)
-            echo -e "${BLUE}Выход...${NC}"
+            echo -e "${BRIGHT_BLUE}Выход...${NC}"
             exit 0
             ;;
         *)
-            echo -e "${RED}Неверный выбор! Пожалуйста, выберите 1-5.${NC}"
+            echo -e "${BRIGHT_RED}Неверный выбор! Пожалуйста, выберите 1-5.${NC}"
             ;;
     esac
 done
