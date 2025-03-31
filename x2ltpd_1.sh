@@ -1,8 +1,15 @@
 #!/bin/bash
 
+# Цветовые коды
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+RED='\033[0;31m'
+NC='\033[0m' # Сброс цвета
+
 # Функция для установки xl2tpd и настройки
 install_xl2tpd() {
-    echo "Установка xl2tpd и необходимых компонентов..."
+    echo -e "${BLUE}Установка xl2tpd и необходимых компонентов...${NC}"
     sudo apt update
     sudo apt install -y xl2tpd iptables
 
@@ -59,26 +66,26 @@ EOL'
     sudo systemctl restart xl2tpd
     sudo systemctl enable xl2tpd
 
-    echo "Установка завершена!"
+    echo -e "${BLUE}Установка завершена!${NC}"
     add_user
 }
 
 # Функция для добавления пользователя
 add_user() {
-    echo "Добавление нового пользователя L2TP..."
+    echo -e "${BLUE}Добавление нового пользователя L2TP...${NC}"
     read -p "Введите имя пользователя: " username
     read -s -p "Введите пароль: " password
     echo ""
     
     # Добавление в chap-secrets
     sudo bash -c "echo '$username l2tp-vpn $password *' >> /etc/ppp/chap-secrets"
-    echo "Пользователь $username успешно добавлен!"
+    echo -e "${BLUE}Пользователь $username успешно добавлен!${NC}"
 }
 
 # Функция для удаления пользователя с отображением списка
 remove_user() {
-    echo "Удаление пользователя L2TP..."
-    echo "Список существующих пользователей:"
+    echo -e "${BLUE}Удаление пользователя L2TP...${NC}"
+    echo -e "${BLUE}Список существующих пользователей:${NC}"
     
     # Проверка существования файла и вывод пользователей
     if [ -f /etc/ppp/chap-secrets ]; then
@@ -86,7 +93,7 @@ remove_user() {
         awk '$2 == "l2tp-vpn" {print "Имя пользователя: " $1}' /etc/ppp/chap-secrets
         echo "----------------------------------------"
     else
-        echo "Файл chap-secrets пуст или не существует."
+        echo -e "${RED}Файл chap-secrets пуст или не существует.${NC}"
         return
     fi
     
@@ -94,15 +101,15 @@ remove_user() {
     
     if grep -q "^$username " /etc/ppp/chap-secrets; then
         sudo sed -i "/^$username /d" /etc/ppp/chap-secrets
-        echo "Пользователь $username успешно удален!"
+        echo -e "${BLUE}Пользователь $username успешно удален!${NC}"
     else
-        echo "Пользователь $username не найден!"
+        echo -e "${RED}Пользователь $username не найден!${NC}"
     fi
 }
 
 # Функция для удаления xl2tpd и всех настроек
 remove_xl2tpd() {
-    echo "Удаление xl2tpd и всех связанных настроек..."
+    echo -e "${BLUE}Удаление xl2tpd и всех связанных настроек...${NC}"
 
     # Остановка и отключение службы
     sudo systemctl stop xl2tpd
@@ -125,15 +132,15 @@ remove_xl2tpd() {
     sudo sysctl -w net.ipv4.ip_forward=0
     sudo sed -i 's/net.ipv4.ip_forward=1/#net.ipv4.ip_forward=1/' /etc/sysctl.conf
 
-    echo "xl2tpd и все связанные настройки успешно удалены!"
+    echo -e "${BLUE}xl2tpd и все связанные настройки успешно удалены!${NC}"
 }
 
 # Основное меню
-echo "Выберите действие:"
-echo "1. Установить"
-echo "2. Добавить пользователя L2TP"
-echo "3. Удалить пользователя"
-echo "4. Удалить xl2tpd"
+echo -e "${BLUE}Выберите действие:${NC}"
+echo -e "${GREEN}1. Установить${NC}           ${YELLOW}(1)${NC}"
+echo -e "${GREEN}2. Добавить пользователя L2TP${NC} ${YELLOW}(2)${NC}"
+echo -e "${GREEN}3. Удалить пользователя${NC}   ${YELLOW}(3)${NC}"
+echo -e "${GREEN}4. Удалить xl2tpd${NC}        ${YELLOW}(4)${NC}"
 read -p "Введите номер действия (1-4): " choice
 
 case $choice in
@@ -150,6 +157,6 @@ case $choice in
         remove_xl2tpd
         ;;
     *)
-        echo "Неверный выбор! Пожалуйста, выберите 1, 2, 3 или 4."
+        echo -e "${RED}Неверный выбор! Пожалуйста, выберите 1, 2, 3 или 4.${NC}"
         ;;
 esac
