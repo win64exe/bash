@@ -82,27 +82,17 @@ if [ $? -ne 0 ]; then
     return 1
 fi
 
-# Создание директории /etc/iptables/
-sudo mkdir -p /etc/iptables/
-
-# Сохранение правил iptables
-sudo sh -c "iptables-save > /etc/iptables/rules.v4"
+# Включение IP forwarding
+sudo sysctl -w net.ipv4.ip_forward=1
 if [ $? -ne 0 ]; then
-    echo -e "${RED}Ошибка при сохранении правил iptables!${NC}"
+    echo -e "${RED}Ошибка при включении IP forwarding!${NC}"
     return 1
 fi
-
-    # Включение IP forwarding
-    sudo sysctl -w net.ipv4.ip_forward=1
-    if [ $? -ne 0 ]; then
-        echo -e "${RED}Ошибка при включении IP forwarding!${NC}"
-        return 1
-    fi
-    sudo sed -i 's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/' /etc/sysctl.conf
-    if [ $? -ne 0 ]; then
-        echo -e "${RED}Ошибка при изменении /etc/sysctl.conf!${NC}"
-        return 1
-    fi
+sudo sed -i 's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/' /etc/sysctl.conf
+if [ $? -ne 0 ]; then
+    echo -e "${RED}Ошибка при изменении /etc/sysctl.conf!${NC}"
+    return 1
+fi
 
     # Перезапуск службы
     sudo systemctl restart xl2tpd
