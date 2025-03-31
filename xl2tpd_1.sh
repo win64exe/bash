@@ -30,22 +30,22 @@ show_credentials() {
 }
 
 # Функция для установки xl2tpd
-install_xl2tpd() {
+function install_xl2tpd {
     echo -e "${BRIGHT_BLUE}Установка xl2tpd и необходимых компонентов...${NC}"
     
-    if ! sudo apt update; then
+    apt update >/dev/null 2>&1 || {
         echo -e "${BRIGHT_RED}Ошибка при обновлении пакетов!${NC}"
         exit 1
-    fi
+    }
     
-    if ! sudo apt install -y xl2tpd iptables; then
+    apt install -y xl2tpd iptables >/dev/null 2>&1 || {
         echo -e "${BRIGHT_RED}Ошибка при установке пакетов!${NC}"
         exit 1
-    fi
+    }
 
     # Конфигурация xl2tpd
-    sudo mkdir -p /etc/xl2tpd
-    sudo bash -c 'cat > /etc/xl2tpd/xl2tpd.conf << EOL
+    mkdir -p /etc/xl2tpd
+    cat > /etc/xl2tpd/xl2tpd.conf <<EOL
 [global]
 port = 1701
 auth file = /etc/ppp/chap-secrets
@@ -62,10 +62,10 @@ tunnel rws = 8
 name = l2tp-vpn
 pppoptfile = /etc/ppp/options.xl2tpd
 flow bit = yes
-EOL'
+EOL
 
     # Настройки PPP
-    sudo bash -c 'cat > /etc/ppp/options.xl2tpd << EOL
+    cat > /etc/ppp/options.xl2tpd <<EOL
 asyncmap 0
 auth
 mtu 1400
@@ -80,33 +80,33 @@ novj
 noccp
 ms-dns 208.67.222.222
 ms-dns 1.1.1.1
-EOL'
+EOL
 
     # Настройка файла аутентификации
-    sudo touch /etc/ppp/chap-secrets
-    sudo chmod 600 /etc/ppp/chap-secrets
+    touch /etc/ppp/chap-secrets
+    chmod 600 /etc/ppp/chap-secrets
 
     # Настройка NAT
     echo -e "${BRIGHT_YELLOW}Используется интерфейс: $DEFAULT_IFACE${NC}"
-    sudo iptables -t nat -A POSTROUTING -s 10.2.2.0/24 -o $DEFAULT_IFACE -j MASQUERADE
+    iptables -t nat -A POSTROUTING -s 10.2.2.0/24 -o $DEFAULT_IFACE -j MASQUERADE
     
     # Сохранение правил iptables
-    sudo mkdir -p /etc/iptables
-    sudo sh -c "iptables-save > /etc/iptables/rules.v4"
+    mkdir -p /etc/iptables
+    iptables-save > /etc/iptables/rules.v4
 
     # Включение переадресации IP
-    sudo sysctl -w net.ipv4.ip_forward=1
-    sudo sed -i 's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/' /etc/sysctl.conf
+    sysctl -w net.ipv4.ip_forward=1
+    sed -i 's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/' /etc/sysctl.conf
 
     # Запуск службы
-    sudo systemctl restart xl2tpd
-    sudo systemctl enable xl2tpd
+    systemctl restart xl2tpd
+    systemctl enable xl2tpd >/dev/null 2>&1
 
     echo -e "${BRIGHT_GREEN}Установка завершена успешно!${NC}"
 }
 
 # Функция для добавления пользователя
-add_user() {
+function add_user {
     echo -e "${BRIGHT_BLUE}Добавление нового пользователя L2TP...${NC}"
     
     while true; do
@@ -120,7 +120,7 @@ add_user() {
             echo -e "${BRIGHT_YELLOW}Пользователь $username уже существует!${NC}"
             read -p "Хотите изменить пароль для этого пользователя? (y/n): " change
             if [[ "$change" =~ ^[YyДд] ]]; then
-                sudo sed -i "/^$username /d" /etc/ppp/chap-secrets
+                sed -i "/^$username /d" /etc/ppp/chap-secrets
             else
                 continue
             fi
@@ -128,33 +128,19 @@ add_user() {
         break
     done
     
-    while true; do
-        read -s -p "Введите пароль: " password
-        echo
-        if [ -z "$password" ]; then
-            echo -e "${BRIGHT_RED}Пароль не может быть пустым!${NC}"
-            continue
-        fi
-        
-        read -s -p "Повторите пароль: " password_confirm
-        echo
-        if [ "$password" != "$password_confirm" ]; then
-            echo -e "${BRIGHT_RED}Пароли не совпадают!${NC}"
-            continue
-        fi
-        break
-    done
+    read -s -p "Введите пароль: " password
+    echo
     
     # Добавление пользователя
-    sudo bash -c "echo '$username l2tp-vpn $password *' >> /etc/ppp/chap-secrets"
-    sudo systemctl restart xl2tpd
+    echo "$username l2tp-vpn $password *" >> /etc/ppp/chap-secrets
+    systemctl restart xl2tpd
     
     # Вывод данных для подключения
     show_credentials "$username" "$password"
 }
 
 # Функция для удаления пользователя
-remove_user() {
+function remove_user {
     echo -e "${BRIGHT_BLUE}Удаление пользователя L2TP...${NC}"
     
     if [ ! -f /etc/ppp/chap-secrets ] || [ ! -s /etc/ppp/chap-secrets ]; then
@@ -175,8 +161,8 @@ remove_user() {
         fi
         
         if grep -q "^$username " /etc/ppp/chap-secrets; then
-            sudo sed -i "/^$username /d" /etc/ppp/chap-secrets
-            sudo systemctl restart xl2tpd
+            sed -i "/^$username /d" /etc/ppp/chap-secrets
+            systemctl restart xl2tpd
             echo -e "${BRIGHT_GREEN}Пользователь $username успешно удален!${NC}"
             return 0
         else
@@ -186,7 +172,7 @@ remove_user() {
 }
 
 # Функция для удаления xl2tpd
-remove_xl2tpd() {
+function remove_xl2tpd {
     echo -e "${BRIGHT_YELLOW}Внимание! Будут удалены все настройки xl2tpd!${NC}"
     read -p "Вы уверены, что хотите продолжить? (y/n): " confirm
     
@@ -197,23 +183,23 @@ remove_xl2tpd() {
 
     echo -e "${BRIGHT_BLUE}Удаление xl2tpd...${NC}"
 
-    sudo systemctl stop xl2tpd 2>/dev/null
-    sudo systemctl disable xl2tpd 2>/dev/null
+    systemctl stop xl2tpd 2>/dev/null
+    systemctl disable xl2tpd 2>/dev/null
 
-    sudo apt purge -y xl2tpd
-    sudo apt autoremove -y
+    apt purge -y xl2tpd
+    apt autoremove -y
 
-    sudo rm -f /etc/xl2tpd/xl2tpd.conf
-    sudo rm -f /etc/ppp/options.xl2tpd
-    sudo rm -f /etc/ppp/chap-secrets
+    rm -f /etc/xl2tpd/xl2tpd.conf
+    rm -f /etc/ppp/options.xl2tpd
+    rm -f /etc/ppp/chap-secrets
 
     if iptables -t nat -C POSTROUTING -s 10.2.2.0/24 -o $DEFAULT_IFACE -j MASQUERADE 2>/dev/null; then
-        sudo iptables -t nat -D POSTROUTING -s 10.2.2.0/24 -o $DEFAULT_IFACE -j MASQUERADE
-        sudo sh -c "iptables-save > /etc/iptables/rules.v4"
+        iptables -t nat -D POSTROUTING -s 10.2.2.0/24 -o $DEFAULT_IFACE -j MASQUERADE
+        iptables-save > /etc/iptables/rules.v4
     fi
 
-    sudo sysctl -w net.ipv4.ip_forward=0
-    sudo sed -i 's/net.ipv4.ip_forward=1/#net.ipv4.ip_forward=1/' /etc/sysctl.conf
+    sysctl -w net.ipv4.ip_forward=0
+    sed -i 's/net.ipv4.ip_forward=1/#net.ipv4.ip_forward=1/' /etc/sysctl.conf
 
     echo -e "${BRIGHT_GREEN}xl2tpd успешно удален!${NC}"
 }
