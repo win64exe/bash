@@ -97,4 +97,111 @@ EOL
 }
 
 add_user() {
-    echo -e "${
+    echo -e "${BRIGHT_BLUE}Добавление нового пользователя L2TP...${NC}"
+    
+    while true; do
+        read -p "Введите имя пользователя: " username
+        [ -z "$username" ] && {
+            echo -e "${BRIGHT_RED}Имя пользователя не может быть пустым!${NC}"
+            continue
+        }
+        
+        if grep -q "^$username " /etc/ppp/chap-secrets; then
+            echo -e "${BRIGHT_YELLOW}Пользователь $username уже существует!${NC}"
+            read -p "Хотите изменить пароль для этого пользователя? (y/n): " change
+            [[ "$change" =~ ^[YyДд] ]] && sed -i "/^$username /d" /etc/ppp/chap-secrets || continue
+        fi
+        break
+    done
+    
+    read -s -p "Введите пароль: " password
+    echo
+    
+    echo "$username l2tp-vpn $password *" >> /etc/ppp/chap-secrets
+    systemctl restart xl2tpd
+    
+    show_credentials "$username" "$password"
+}
+
+remove_user() {
+    echo -e "${BRIGHT_BLUE}Удаление пользователя L2TP...${NC}"
+    
+    if [ ! -f /etc/ppp/chap-secrets ] || [ ! -s /etc/ppp/chap-secrets ]; then
+        echo -e "${BRIGHT_RED}Файл chap-secrets пуст или не существует!${NC}"
+        return 1
+    fi
+    
+    echo -e "${BRIGHT_BLUE}Список пользователей:${NC}"
+    echo "----------------------------------------"
+    awk '$2 == "l2tp-vpn" {print "Имя пользователя: " $1}' /etc/ppp/chap-secrets
+    echo "----------------------------------------"
+    
+    while true; do
+        read -p "Введите имя пользователя для удаления (или 'q' для выхода): " username
+        
+        [ "$username" = "q" ] && return 0
+        
+        if grep -q "^$username " /etc/ppp/chap-secrets; then
+            sed -i "/^$username /d" /etc/ppp/chap-secrets
+            systemctl restart xl2tpd
+            echo -e "${BRIGHT_GREEN}Пользователь $username успешно удален!${NC}"
+            return 0
+        else
+            echo -e "${BRIGHT_RED}Пользователь $username не найден!${NC}"
+        fi
+    done
+}
+
+remove_xl2tpd() {
+    echo -e "${BRIGHT_YELLOW}Внимание! Будут удалены все настройки xl2tpd!${NC}"
+    read -p "Вы уверены, что хотите продолжить? (y/n): " confirm
+    
+    [[ "$confirm" =~ ^[YyДд] ]] || {
+        echo -e "${BRIGHT_BLUE}Удаление отменено.${NC}"
+        return
+    }
+
+    echo -e "${BRIGHT_BLUE}Удаление xl2tpd...${NC}"
+
+    systemctl stop xl2tpd 2>/dev/null
+    systemctl disable xl2tpd 2>/dev/null
+
+    apt purge -y xl2tpd
+    apt autoremove -y
+
+    rm -f /etc/xl2tpd/xl2tpd.conf
+    rm -f /etc/ppp/options.xl2tpd
+    rm -f /etc/ppp/chap-secrets
+
+    if iptables -t nat -C POSTROUTING -s 10.2.2.0/24 -o $DEFAULT_IFACE -j MASQUERADE 2>/dev/null; then
+        iptables -t nat -D POSTROUTING -s 10.2.2.0/24 -o $DEFAULT_IFACE -j MASQUERADE
+        iptables-save > /etc/iptables/rules.v4
+    fi
+
+    sysctl -w net.ipv4.ip_forward=0
+    sed -i 's/net.ipv4.ip_forward=1/#net.ipv4.ip_forward=1/' /etc/sysctl.conf
+
+    echo -e "${BRIGHT_GREEN}xl2tpd успешно удален!${NC}"
+}
+
+while true; do
+    echo -e "\n${BRIGHT_BLUE}Выберите действие:${NC}"
+    echo -e "${BRIGHT_GREEN}1. Установить xl2tpd${NC}           ${BRIGHT_YELLOW}(1)${NC}"
+    echo -e "${BRIGHT_GREEN}2. Добавить пользователя L2TP${NC} ${BRIGHT_YELLOW}(2)${NC}"
+    echo -e "${BRIGHT_GREEN}3. Удалить пользователя${NC}       ${BRIGHT_YELLOW}(3)${NC}"
+    echo -e "${BRIGHT_GREEN}4. Удалить xl2tpd${NC}            ${BRIGHT_YELLOW}(4)${NC}"
+    echo -e "${BRIGHT_GREEN}5. Выход${NC}                     ${BRIGHT_YELLOW}(5)${NC}"
+    read -p "Введите номер действия (1-5): " choice
+
+    case $choice in
+        1) install_xl2tpd ;;
+        2) add_user ;;
+        3) remove_user ;;
+        4) remove_xl2tpd ;;
+        5)
+            echo -e "${BRIGHT_BLUE}Выход...${NC}"
+            exit 0
+            ;;
+        *) echo -e "${BRIGHT_RED}Неверный выбор! Пожалуйста, выберите 1-5.${NC}" ;;
+    esac
+done
