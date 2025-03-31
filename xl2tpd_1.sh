@@ -185,13 +185,16 @@ remove_xl2tpd() {
 }
 
 while true; do
-    echo -e "\n${BRIGHT_BLUE}Выберите действие:${NC}"
-    echo -e "${BRIGHT_GREEN}1. Установить xl2tpd${NC}           ${BRIGHT_YELLOW}(1)${NC}"
-    echo -e "${BRIGHT_GREEN}2. Добавить пользователя L2TP${NC} ${BRIGHT_YELLOW}(2)${NC}"
-    echo -e "${BRIGHT_GREEN}3. Удалить пользователя${NC}       ${BRIGHT_YELLOW}(3)${NC}"
-    echo -e "${BRIGHT_GREEN}4. Удалить xl2tpd${NC}            ${BRIGHT_YELLOW}(4)${NC}"
-    echo -e "${BRIGHT_GREEN}5. Выход${NC}                     ${BRIGHT_YELLOW}(5)${NC}"
-    read -p "Введите номер действия (1-5): " choice
+    echo -e "\n${BRIGHT_BLUE}╔══════════════════════════════╗${NC}"
+    echo -e "${BRIGHT_BLUE}║          МЕНЮ ВЫБОРА         ║${NC}"
+    echo -e "${BRIGHT_BLUE}╠══════════════════════════════╣${NC}"
+    echo -e "${BRIGHT_BLUE}║ [1] Установить xl2tpd        ║${NC}"
+    echo -e "${BRIGHT_BLUE}║ [2] Добавить пользователя    ║${NC}"
+    echo -e "${BRIGHT_BLUE}║ [3] Удалить пользователя     ║${NC}"
+    echo -e "${BRIGHT_BLUE}║ [4] Удалить xl2tpd           ║${NC}"
+    echo -e "${BRIGHT_BLUE}║ [5] Выход                    ║${NC}"
+    echo -e "${BRIGHT_BLUE}╚══════════════════════════════╝${NC}"
+    read -p "Выберите действие [1-5]: " choice
 
     case $choice in
         1) install_xl2tpd ;;
