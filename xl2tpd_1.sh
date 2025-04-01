@@ -13,16 +13,50 @@ if [ "$(id -u)" -ne 0 ]; then
     exit 1
 fi
 
-# Определение внешнего интерфейса и IP
-DEFAULT_IFACE=$(ip route | grep '^default' | awk '{print $5}' | head -n1)
-SERVER_IP=$(curl -s ifconfig.me || ip addr show $DEFAULT_IFACE | grep 'inet ' | awk '{print $2}' | cut -d/ -f1)
+# Функция проверки интернет-соединения
+check_internet() {
+    echo -e "${BRIGHT_BLUE}Проверка интернет-соединения...${NC}"
+    if ! ping -c 2 -W 3 8.8.8.8 &>/dev/null; then
+        echo -e "${BRIGHT_YELLOW}Предупреждение: Нет интернет-соединения! Некоторые функции могут работать ограниченно.${NC}"
+        return 1
+    fi
+    return 0
+}
+
+# Определение IP и интерфейса
+determine_network() {
+    DEFAULT_IFACE=$(ip route | grep '^default' | awk '{print $5}' | head -n1)
+    
+    # Проверяем несколько способов определения IP
+    check_internet && {
+        SERVER_IP=$(curl -s --connect-timeout 3 ifconfig.me || 
+                   curl -s --connect-timeout 3 icanhazip.com || 
+                   curl -s --connect-timeout 3 ifconfig.co)
+    }
+    
+    # Если не удалось получить внешний IP или нет интернета
+    if [ -z "$SERVER_IP" ] || [[ "$SERVER_IP" == *"no healthy"* ]]; then
+        SERVER_IP=$(ip addr show $DEFAULT_IFACE | grep 'inet ' | awk '{print $2}' | cut -d/ -f1 | head -n1)
+        [ -z "$SERVER_IP" ] && SERVER_IP=$(hostname -I | awk '{print $1}')
+    fi
+    
+    # Если всё ещё не определили IP
+    [ -z "$SERVER_IP" ] && SERVER_IP="[не удалось определить]"
+}
+
+# Инициализация сети
+determine_network
 
 show_credentials() {
     local username=$1
     local password=$2
     
+    # Обновляем IP перед показом
+    determine_network
+    
     echo -e "\n${BRIGHT_GREEN}=== ДАННЫЕ ДЛЯ ПОДКЛЮЧЕНИЯ ===${NC}"
     echo -e "${BRIGHT_BLUE}IP сервера:${NC} $SERVER_IP"
+    echo -e "${BRIGHT_BLUE}Интерфейс:${NC} $DEFAULT_IFACE"
     echo -e "${BRIGHT_BLUE}Логин:${NC} $username"
     echo -e "${BRIGHT_BLUE}Пароль:${NC} $password"
     echo -e "${BRIGHT_GREEN}===========================${NC}"
@@ -31,15 +65,25 @@ show_credentials() {
 install_xl2tpd() {
     echo -e "${BRIGHT_BLUE}Установка xl2tpd и необходимых компонентов...${NC}"
     
+    # Проверка поддержки ОС
+    if ! grep -qiE "ubuntu|debian" /etc/os-release; then
+        echo -e "${BRIGHT_RED}Ошибка: Этот скрипт поддерживает только Ubuntu/Debian!${NC}"
+        return 1
+    fi
+    
     apt update || {
         echo -e "${BRIGHT_RED}Ошибка при обновлении пакетов!${NC}"
-        exit 1
+        return 1
     }
     
     apt install -y xl2tpd iptables || {
         echo -e "${BRIGHT_RED}Ошибка при установке пакетов!${NC}"
-        exit 1
+        return 1
     }
+
+    # Создаем резервную копию конфигов, если они существуют
+    [ -f "/etc/xl2tpd/xl2tpd.conf" ] && cp "/etc/xl2tpd/xl2tpd.conf" "/etc/xl2tpd/xl2tpd.conf.bak"
+    [ -f "/etc/ppp/options.xl2tpd" ] && cp "/etc/ppp/options.xl2tpd" "/etc/ppp/options.xl2tpd.bak"
 
     mkdir -p /etc/xl2tpd
     cat > /etc/xl2tpd/xl2tpd.conf <<EOL
@@ -96,6 +140,11 @@ EOL
     echo -e "${BRIGHT_GREEN}Установка завершена успешно!${NC}"
 }
 
+generate_password() {
+    local length=${1:-12}
+    tr -dc 'A-Za-z0-9!@#$%^&*()' </dev/urandom | head -c $length
+}
+
 add_user() {
     echo -e "${BRIGHT_BLUE}Добавление нового пользователя L2TP...${NC}"
     
@@ -114,8 +163,13 @@ add_user() {
         break
     done
     
-    read -s -p "Введите пароль: " password
+    read -s -p "Введите пароль (оставьте пустым для автоматической генерации): " password
     echo
+    
+    [ -z "$password" ] && {
+        password=$(generate_password)
+        echo -e "${BRIGHT_YELLOW}Сгенерирован пароль: $password${NC}"
+    }
     
     echo "$username l2tp-vpn $password *" >> /etc/ppp/chap-secrets
     systemctl restart xl2tpd
@@ -192,19 +246,21 @@ while true; do
     echo -e "${BRIGHT_BLUE}║ [2] Добавить пользователя    ║${NC}"
     echo -e "${BRIGHT_BLUE}║ [3] Удалить пользователя     ║${NC}"
     echo -e "${BRIGHT_BLUE}║ [4] Удалить xl2tpd           ║${NC}"
-    echo -e "${BRIGHT_BLUE}║ [5] Выход                    ║${NC}"
+    echo -e "${BRIGHT_BLUE}║ [5] Проверить подключение    ║${NC}"
+    echo -e "${BRIGHT_BLUE}║ [6] Выход                    ║${NC}"
     echo -e "${BRIGHT_BLUE}╚══════════════════════════════╝${NC}"
-    read -p "Выберите действие [1-5]: " choice
+    read -p "Выберите действие [1-6]: " choice
 
     case $choice in
         1) install_xl2tpd ;;
         2) add_user ;;
         3) remove_user ;;
         4) remove_xl2tpd ;;
-        5)
+        5) check_internet ;;
+        6)
             echo -e "${BRIGHT_BLUE}Выход...${NC}"
             exit 0
             ;;
-        *) echo -e "${BRIGHT_RED}Неверный выбор! Пожалуйста, выберите 1-5.${NC}" ;;
+        *) echo -e "${BRIGHT_RED}Неверный выбор! Пожалуйста, выберите 1-6.${NC}" ;;
     esac
 done
