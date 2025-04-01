@@ -99,6 +99,7 @@ lac = 0.0.0.0-255.255.255.255
 hidden bit = no
 length bit = yes
 require chap = yes
+require authentication = yes
 tunnel rws = 8
 name = l2tp-vpn
 pppoptfile = /etc/ppp/options.xl2tpd
@@ -108,8 +109,8 @@ EOL
     cat > /etc/ppp/options.xl2tpd <<EOL
 asyncmap 0
 auth
-mtu 1400
-mru 1400
+mtu 1500
+mru 1500
 lcp-echo-interval 60
 lcp-echo-failure 4
 noipx
