@@ -11,24 +11,22 @@ NC='\033[0m' # No Color
 # Функция для отображения меню
 show_menu() {
     clear
-    echo -e "${CYAN}╔════════════════════════════════════╗"
-    echo -e "║   ${YELLOW}Sing-box Management Menu${CYAN}          ║"
-    echo -e "╠════════════════════════════════════╣"
-    echo -e "║ ${GREEN}1.${NC} Просмотр логов sing-box (режим реального времени) ║"
-    echo -e "║ ${GREEN}2.${NC} Получить внешний IP через sing-box tools          ║"
-    echo -e "║ ${GREEN}3.${NC} Проверить внешний IP через tun0 интерфейс        ║"
-    echo -e "║ ${GREEN}4.${NC} Проверить конфигурацию sing-box                  ║"
-    echo -e "║ ${GREEN}5.${NC} Запустить sing-box                               ║"
-    echo -e "║ ${GREEN}6.${NC} Остановить sing-box                              ║"
-    echo -e "║ ${GREEN}7.${NC} Проверить версию sing-box                        ║"
-    echo -e "╟────────────────────────────────────╢"
-    echo -e "║ ${GREEN}8.${NC} Проверить DNS на подмену                        ║"
-    echo -e "║ ${GREEN}9.${NC} Установить ITDog sing-box                       ║"
-    echo -e "╟────────────────────────────────────╢"
-    echo -e "║ ${GREEN}10.${NC} Обновить sing-box                             ║"
-    echo -e "╟────────────────────────────────────╢"
-    echo -e "║ ${GREEN}0.${NC} Выход                                           ║"
-    echo -e "╚════════════════════════════════════╝${NC}"
+    echo -e "${CYAN}=== Sing-box Management Menu ==="
+    echo -e "${GREEN}1.${NC} Просмотр логов sing-box (режим реального времени)"
+    echo -e "${GREEN}2.${NC} Получить внешний IP через sing-box tools"
+    echo -e "${GREEN}3.${NC} Проверить внешний IP через tun0 интерфейс"
+    echo -e "${GREEN}4.${NC} Проверить конфигурацию sing-box"
+    echo -e "${GREEN}5.${NC} Запустить sing-box"
+    echo -e "${GREEN}6.${NC} Остановить sing-box"
+    echo -e "${GREEN}7.${NC} Проверить версию sing-box"
+    echo -e "${CYAN}-------------------------------"
+    echo -e "${GREEN}8.${NC} Проверить DNS на подмену"
+    echo -e "${GREEN}9.${NC} Установить ITDog sing-box"
+    echo -e "${CYAN}-------------------------------"
+    echo -e "${GREEN}10.${NC} Обновить sing-box"
+    echo -e "${CYAN}-------------------------------"
+    echo -e "${GREEN}0.${NC} Выход"
+    echo -e "${CYAN}===============================${NC}"
 }
 
 # Функция для паузы
@@ -39,7 +37,7 @@ pause() {
 
 # Функция для проверки последней версии
 check_latest_version() {
-    echo -e "\n${YELLOW}Получение информации о последней версии...${NC}"
+    echo -e "\n${YELLOW}=== Получение информации о последней версии ==="
     LATEST_VERSION=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
     CURRENT_VERSION=$(sing-box version 2>/dev/null | head -n 1 | awk '{print $3}')
     
@@ -57,7 +55,7 @@ check_latest_version() {
 update_sing_box() {
     check_latest_version
     
-    echo -e "\n${YELLOW}Выберите архитектуру:${NC}"
+    echo -e "\n${YELLOW}=== Выберите архитектуру ==="
     echo "1. linux-amd64"
     echo "2. linux-arm64"
     echo "3. linux-armv7"
@@ -73,7 +71,7 @@ update_sing_box() {
         *) echo -e "${RED}Неверный выбор${NC}"; return ;;
     esac
     
-    echo -e "\n${YELLOW}Начинаем обновление...${NC}"
+    echo -e "\n${YELLOW}=== Начинаем обновление ==="
     
     /etc/init.d/sing-box stop
     
@@ -103,7 +101,7 @@ update_sing_box() {
     chmod +x /usr/bin/sing-box
     /etc/init.d/sing-box start
     
-    echo -e "\n${GREEN}Проверка версии после обновления:${NC}"
+    echo -e "\n${GREEN}=== Проверка версии после обновления ==="
     sing-box version
     
     echo -e "\n${GREEN}✅ Sing-box успешно обновлен до версии ${LATEST_VERSION}${NC}"
@@ -119,71 +117,51 @@ while true; do
     
     case $choice in
         1)
-            echo -e "\n${YELLOW}╔════════════════════════════════════╗"
-            echo -e "║    Просмотр логов sing-box (режим реального времени)    ║"
-            echo -e "╚════════════════════════════════════╝${NC}"
+            echo -e "\n${YELLOW}=== Просмотр логов sing-box ==="
             logread -f -e sing-box
             ;;
         2)
-            echo -e "\n${YELLOW}╔════════════════════════════════════╗"
-            echo -e "║    Получение внешнего IP через sing-box tools    ║"
-            echo -e "╚════════════════════════════════════╝${NC}"
+            echo -e "\n${YELLOW}=== Получение внешнего IP через sing-box tools ==="
             sing-box tools fetch ifconfig.co -D /etc/sing-box/
             pause
             ;;
         3)
-            echo -e "\n${YELLOW}╔════════════════════════════════════╗"
-            echo -e "║    Проверка внешнего IP через tun0 интерфейс    ║"
-            echo -e "╚════════════════════════════════════╝${NC}"
+            echo -e "\n${YELLOW}=== Проверка внешнего IP через tun0 интерфейс ==="
             curl --interface tun0 ifconfig.me
             pause
             ;;
         4)
-            echo -e "\n${YELLOW}╔════════════════════════════════════╗"
-            echo -e "║    Проверка конфигурации sing-box    ║"
-            echo -e "╚════════════════════════════════════╝${NC}"
+            echo -e "\n${YELLOW}=== Проверка конфигурации sing-box ==="
             sing-box -c /etc/sing-box/config.json check
             pause
             ;;
         5)
-            echo -e "\n${YELLOW}╔════════════════════════════════════╗"
-            echo -e "║    Запуск sing-box    ║"
-            echo -e "╚════════════════════════════════════╝${NC}"
+            echo -e "\n${YELLOW}=== Запуск sing-box ==="
             /etc/init.d/sing-box start
             pause
             ;;
         6)
-            echo -e "\n${YELLOW}╔════════════════════════════════════╗"
-            echo -e "║    Остановка sing-box    ║"
-            echo -e "╚════════════════════════════════════╝${NC}"
+            echo -e "\n${YELLOW}=== Остановка sing-box ==="
             /etc/init.d/sing-box stop
             pause
             ;;
         7)
-            echo -e "\n${YELLOW}╔════════════════════════════════════╗"
-            echo -e "║    Текущая версия sing-box    ║"
-            echo -e "╚════════════════════════════════════╝${NC}"
+            echo -e "\n${YELLOW}=== Текущая версия sing-box ==="
             sing-box version
             pause
             ;;
         8)
-            echo -e "\n${YELLOW}╔════════════════════════════════════╗"
-            echo -e "║    Проверка DNS на подмену    ║"
-            echo -e "╚════════════════════════════════════╝${NC}"
+            echo -e "\n${YELLOW}=== Проверка DNS на подмену ==="
             wget -O - https://raw.githubusercontent.com/itdoginfo/domain-routing-openwrt/master/getdomains-check.sh | sh -s dns
             pause
             ;;
         9)
-            echo -e "\n${YELLOW}╔════════════════════════════════════╗"
-            echo -e "║    Установка ITDog sing-box    ║"
-            echo -e "╚════════════════════════════════════╝${NC}"
+            echo -e "\n${YELLOW}=== Установка ITDog sing-box ==="
             sh <(wget -O - https://raw.githubusercontent.com/itdoginfo/domain-routing-openwrt/master/getdomains-install.sh)
             pause
             ;;
         10)
-            echo -e "\n${YELLOW}╔════════════════════════════════════╗"
-            echo -e "║    Обновление sing-box    ║"
-            echo -e "╚════════════════════════════════════╝${NC}"
+            echo -e "\n${YELLOW}=== Обновление sing-box ==="
             update_sing_box
             pause
             ;;
