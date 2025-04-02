@@ -8,6 +8,17 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
+# Функция для определения архитектуры
+detect_architecture() {
+    ARCH=$(uname -m)
+    case "$ARCH" in
+        x86_64)  echo "amd64" ;;
+        aarch64) echo "arm64" ;;
+        armv7l)  echo "armv7" ;;
+        *)       echo "unknown" ;;
+    esac
+}
+
 # Функция для отображения меню
 show_menu() {
     clear
@@ -23,7 +34,7 @@ show_menu() {
     echo -e "${GREEN}8.${NC} Проверить DNS на подмену"
     echo -e "${GREEN}9.${NC} Установить ITDog sing-box"
     echo -e "${CYAN}-------------------------------"
-    echo -e "${GREEN}10.${NC} Обновить sing-box"
+    echo -e "${GREEN}10.${NC} Обновить sing-box (автоопределение)"
     echo -e "${CYAN}-------------------------------"
     echo -e "${GREEN}0.${NC} Выход"
     echo -e "${CYAN}===============================${NC}"
@@ -51,31 +62,74 @@ check_latest_version() {
     fi
 }
 
+# Функция для проверки доступных пакетов
+check_available_packages() {
+    echo -e "\n${YELLOW}=== Доступные пакеты для вашей архитектуры ==="
+    ARCH=$(detect_architecture)
+    echo -e "${CYAN}Определена архитектура: ${YELLOW}${ARCH}${NC}"
+    
+    case "$ARCH" in
+        amd64)
+            echo "1. sing-box (linux-amd64)"
+            echo "2. sing-box-musl (linux-amd64-musl)"
+            ;;
+        arm64)
+            echo "1. sing-box (linux-arm64)"
+            echo "2. sing-box-musl (linux-arm64-musl)"
+            ;;
+        armv7)
+            echo "1. sing-box (linux-armv7)"
+            echo "2. sing-box-musl (linux-armv7-musl)"
+            ;;
+        *)
+            echo -e "${RED}Архитектура не поддерживается!${NC}"
+            return 1
+            ;;
+    esac
+}
+
 # Функция для обновления sing-box
 update_sing_box() {
     check_latest_version
     
-    echo -e "\n${YELLOW}=== Выберите архитектуру ==="
-    echo "1. linux-amd64"
-    echo "2. linux-arm64"
-    echo "3. linux-armv7"
-    echo "0. Отмена"
+    # Автоматическое определение архитектуры
+    ARCH=$(detect_architecture)
+    if [ "$ARCH" = "unknown" ]; then
+        echo -e "${RED}Не удалось определить архитектуру процессора!${NC}"
+        echo -e "${YELLOW}Пожалуйста, выберите вручную:${NC}"
+        echo "1. linux-amd64"
+        echo "2. linux-arm64"
+        echo "3. linux-armv7"
+        echo "0. Отмена"
+        
+        read -p "Ваш выбор: " arch_choice
+        
+        case $arch_choice in
+            1) ARCH="amd64" ;;
+            2) ARCH="arm64" ;;
+            3) ARCH="armv7" ;;
+            0) return ;;
+            *) echo -e "${RED}Неверный выбор${NC}"; return ;;
+        esac
+    else
+        echo -e "${CYAN}Автоматически определена архитектура: ${YELLOW}${ARCH}${NC}"
+    fi
     
-    read -p "Ваш выбор: " arch_choice
+    # Проверка доступных пакетов
+    check_available_packages
+    read -p "Выберите пакет (1 или 2): " pkg_choice
     
-    case $arch_choice in
-        1) ARCH="amd64" ;;
-        2) ARCH="arm64" ;;
-        3) ARCH="armv7" ;;
-        0) return ;;
-        *) echo -e "${RED}Неверный выбор${NC}"; return ;;
+    case "$pkg_choice" in
+        1) PKG="" ;;
+        2) PKG="-musl" ;;
+        *) echo -e "${RED}Неверный выбор пакета${NC}"; return ;;
     esac
     
     echo -e "\n${YELLOW}=== Начинаем обновление ==="
     
     /etc/init.d/sing-box stop
     
-    DL_URL="https://github.com/SagerNet/sing-box/releases/download/${LATEST_VERSION}/sing-box-${LATEST_VERSION#v}-linux-${ARCH}.tar.gz"
+    DL_URL="https://github.com/SagerNet/sing-box/releases/download/${LATEST_VERSION}/sing-box-${LATEST_VERSION#v}-linux-${ARCH}${PKG}.tar.gz"
     echo -e "${CYAN}Скачивание: ${YELLOW}${DL_URL}${NC}"
     
     wget -O /tmp/sing-box.tar.gz "$DL_URL" || {
@@ -92,7 +146,7 @@ update_sing_box() {
     }
     
     echo -e "${GREEN}Установка новой версии...${NC}"
-    mv /tmp/sing-box-${LATEST_VERSION#v}-linux-${ARCH}/sing-box /usr/bin/ || {
+    mv /tmp/sing-box-${LATEST_VERSION#v}-linux-${ARCH}${PKG}/sing-box /usr/bin/ || {
         echo -e "${RED}Ошибка при перемещении файла!${NC}"
         /etc/init.d/sing-box start
         return 1
