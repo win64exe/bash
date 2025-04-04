@@ -95,10 +95,7 @@ auth file = /etc/ppp/chap-secrets
 exclusive = yes
 ip range = 10.2.2.100-10.2.2.199
 local ip = 10.2.2.1
-lac = 0.0.0.0-255.255.255.255
-hidden bit = no
 length bit = yes
-require chap = yes
 require authentication = yes
 tunnel rws = 8
 name = l2tp-vpn
@@ -109,18 +106,18 @@ EOL
     cat > /etc/ppp/options.xl2tpd <<EOL
 asyncmap 0
 auth
-mtu 1500
-mru 1500
-lcp-echo-interval 60
+mtu 1400
+mru 1400
+lcp-echo-interval 30
 lcp-echo-failure 4
 noipx
+novj
 refuse-pap
+refuse-chap
 refuse-mschap
 require-mschap-v2
-novj
-noccp
-ms-dns 208.67.222.222
 ms-dns 1.1.1.1
+ms-dns 8.8.8.8
 EOL
 
     touch /etc/ppp/chap-secrets
