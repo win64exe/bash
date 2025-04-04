@@ -3,6 +3,7 @@
 # Цвета для оформления
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
+RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 # Функция отображения меню
@@ -21,6 +22,22 @@ show_menu() {
     echo -e "${BLUE}Выберите опцию (1-9):${NC}"
 }
 
+# Функция проверки загрузки скрипта
+check_download() {
+    local url=$1
+    local content=$(curl -Ls "$url")
+    if [[ $? -ne 0 ]]; then
+        echo -e "${RED}Ошибка: Не удалось загрузить скрипт с $url${NC}"
+        return 1
+    fi
+    if [[ $content =~ "<!DOCTYPE html>" || -z "$content" ]]; then
+        echo -e "${RED}Ошибка: Загружен HTML или пустой ответ вместо скрипта с $url${NC}"
+        return 1
+    fi
+    echo "$content"
+    return 0
+}
+
 # Основной цикл
 while true; do
     show_menu
@@ -29,42 +46,62 @@ while true; do
     case $choice in
         1)
             echo "Проверка IP на блокировки зарубежными сервисами..."
-            bash <(curl -Ls IP.Check.Place) -l en
+            script=$(check_download "IP.Check.Place")
+            if [[ $? -eq 0 ]]; then
+                echo "$script" | bash -s -- -l en
+            fi
             read -p "Нажмите Enter для продолжения..."
             ;;
         2)
             echo "Проверка скорости к российским провайдерам..."
-            wget -qO- speedtest.artydev.ru | bash
+            wget -qO- speedtest.artydev.ru | bash 2>/dev/null || echo -e "${RED}Ошибка при выполнении теста${NC}"
             read -p "Нажмите Enter для продолжения..."
             ;;
         3)
             echo "Проверка скорости к зарубежным провайдерам..."
-            wget -qO- bench.sh | bash
+            wget -qO- bench.sh | bash 2>/dev/null || echo -e "${RED}Ошибка при выполнении теста${NC}"
             read -p "Нажмите Enter для продолжения..."
             ;;
         4)
             echo "Проверка блокировки аудио в Instagram..."
-            bash <(curl -L -s https://bench.openode.xyz/checker_inst.sh)
+            script=$(check_download "https://bench.openode.xyz/checker_inst.sh")
+            if [[ $? -eq 0 ]]; then
+                echo "$script" | bash
+            fi
             read -p "Нажмите Enter для продолжения..."
             ;;
         5)
             echo "Запуск теста Yabs..."
-            curl -sL yabs.sh | bash -s -- -4
+            script=$(check_download "https://yabs.sh")
+            if [[ $? -eq 0 ]]; then
+                echo "$script" | bash -s -- -4
+            fi
             read -p "Нажмите Enter для продолжения..."
             ;;
         6)
             echo "Запуск IPRegion Script..."
-            curl -s "https://raw.githubusercontent.com/vernette/ipregion/refs/heads/master/ipregion.sh" | bash
+            script=$(check_download "https://raw.githubusercontent.com/vernette/ipregion/refs/heads/master/ipregion.sh")
+            if [[ $? -eq 0 ]]; then
+                echo "$script" | bash
+            fi
             read -p "Нажмите Enter для продолжения..."
             ;;
         7)
             echo "Запуск Sysbench CPU test (max-prime=10000)..."
-            sysbench --test=cpu --cpu-max-prime=10000 run
+            if command -v sysbench >/dev/null 2>&1; then
+                sysbench --test=cpu --cpu-max-prime=10000 run
+            else
+                echo -e "${RED}Ошибка: sysbench не установлен${NC}"
+            fi
             read -p "Нажмите Enter для продолжения..."
             ;;
         8)
             echo "Запуск Sysbench CPU test (max-prime=20000)..."
-            sysbench --test=cpu --cpu-max-prime=20000 run
+            if command -v sysbench >/dev/null 2>&1; then
+                sysbench --test=cpu --cpu-max-prime=20000 run
+            else
+                echo -e "${RED}Ошибка: sysbench не установлен${NC}"
+            fi
             read -p "Нажмите Enter для продолжения..."
             ;;
         9)
