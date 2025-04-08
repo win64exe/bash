@@ -94,35 +94,59 @@ while true; do
     case $choice in
         1)
             echo -e "\n${GREEN}Проверка IP на блокировки...${NC}"
-            bash <(curl -Ls https://IP.Check.Place) -l en || echo -e "${RED}Ошибка проверки${NC}"
+            bash <(curl -Ls https://IP.Check.Place) -l en
+            if [[ $? -ne 0 ]]; then
+                echo -e "${RED}Ошибка проверки${NC}"
+            fi
             ;;
         2)
             echo -e "\n${GREEN}Тест скорости (Россия)...${NC}"
-            wget -qO- speedtest.artydev.ru | bash 2>/dev/null || echo -e "${RED}Ошибка теста${NC}"
+            wget -qO- speedtest.artydev.ru | bash 2>/dev/null
+            if [[ $? -ne 0 ]]; then
+                echo -e "${RED}Ошибка теста${NC}"
+            fi
             ;;
         3)
             echo -e "\n${GREEN}Тест скорости (Зарубежье)...${NC}"
-            wget -qO- bench.sh | bash 2>/dev/null || echo -e "${RED}Ошибка теста${NC}"
+            wget -qO- bench.sh | bash 2>/dev/null
+            if [[ $? -ne 0 ]]; then
+                echo -e "${RED}Ошибка теста${NC}"
+            fi
             ;;
         4)
             echo -e "\n${GREEN}Проверка Instagram...${NC}"
-            curl -sL https://bench.openode.xyz/checker_inst.sh | bash || echo -e "${RED}Ошибка проверки${NC}"
+            curl -sL https://bench.openode.xyz/checker_inst.sh | bash
+            if [[ $? -ne 0 ]]; then
+                echo -e "${RED}Ошибка проверки${NC}"
+            fi
             ;;
         5)
             echo -e "\n${GREEN}Запуск Yabs...${NC}"
-            curl -sL https://yabs.sh | bash -s -- -4 || echo -e "${RED}Ошибка теста${NC}"
+            curl -sL https://yabs.sh | bash -s -- -4
+            if [[ $? -ne 0 ]]; then
+                echo -e "${RED}Ошибка теста${NC}"
+            fi
             ;;
         6)
             echo -e "\n${GREEN}Проверка геолокации...${NC}"
-            curl -sL https://raw.gitmirror.com/vernette/ipregion/master/ipregion.sh | bash || echo -e "${RED}Ошибка проверки${NC}"
+            curl -sL https://raw.gitmirror.com/vernette/ipregion/master/ipregion.sh | bash
+            if [[ $? -ne 0 ]]; then
+                echo -e "${RED}Ошибка проверки${NC}"
+            fi
             ;;
         7)
             echo -e "\n${GREEN}Тест CPU (10000)...${NC}"
-            command -v sysbench >/dev/null && sysbench cpu --cpu-max-prime=10000 run || echo -e "${RED}sysbench не установлен${NC}"
+            sysbench cpu --cpu-max-prime=10000 run
+            if [[ $? -ne 0 ]]; then
+                echo -e "${RED}sysbench не установлен или произошла ошибка${NC}"
+            fi
             ;;
         8)
             echo -e "\n${GREEN}Тест CPU (20000)...${NC}"
-            command -v sysbench >/dev/null && sysbench cpu --cpu-max-prime=20000 run || echo -e "${RED}sysbench не установлен${NC}"
+            sysbench cpu --cpu-max-prime=20000 run
+            if [[ $? -ne 0 ]]; then
+                echo -e "${RED}sysbench не установлен или произошла ошибка${NC}"
+            fi
             ;;
         9)
             echo -e "\n${GREEN}Выход...${NC}"
@@ -133,5 +157,5 @@ while true; do
             ;;
     esac
     
-    read -p $'\n'"Нажмите Enter чтобы продолжить..."
+    read -p $'\n'"Нажмите Enter, чтобы продолжить..."
 done
