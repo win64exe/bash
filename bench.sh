@@ -7,6 +7,9 @@ RED='\033[0;31m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Ловушка для выхода
+trap "echo -e '\n${RED}Выход...${NC}'; exit 0" SIGINT SIGTERM
+
 # Проверка root-прав
 check_root() {
     if [[ $EUID -ne 0 ]]; then
@@ -34,13 +37,22 @@ check_dependencies() {
             read -p "Установить автоматически? (y/n): " choice
             if [[ "$choice" =~ ^[YyДд]$ ]]; then
                 if command -v apt >/dev/null 2>&1; then
-                    apt update && apt install -y "${missing[@]}"
+                    apt update && apt install -y "${missing[@]}" || {
+                        echo -e "${RED}Не удалось установить зависимости через apt${NC}"
+                        return 1
+                    }
                 elif command -v yum >/dev/null 2>&1; then
-                    yum install -y "${missing[@]}"
+                    yum install -y "${missing[@]}" || {
+                        echo -e "${RED}Не удалось установить зависимости через yum${NC}"
+                        return 1
+                    }
                 else
                     echo -e "${RED}Не удалось определить менеджер пакетов. Установите вручную: ${missing[*]}${NC}"
                     return 1
                 fi
+            else
+                echo -e "${RED}Без установки зависимостей некоторые функции могут не работать.${NC}"
+                return 1
             fi
         else
             echo -e "${RED}Требуются root-права для установки зависимостей${NC}"
@@ -82,7 +94,7 @@ while true; do
     case $choice in
         1)
             echo -e "\n${GREEN}Проверка IP на блокировки...${NC}"
-            curl -sL https://ipcheck.place | bash -s -- -l en || echo -e "${RED}Ошибка проверки${NC}"
+            bash <(curl -Ls https://IP.Check.Place) -l en || echo -e "${RED}Ошибка проверки${NC}"
             ;;
         2)
             echo -e "\n${GREEN}Тест скорости (Россия)...${NC}"
