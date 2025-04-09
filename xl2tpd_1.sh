@@ -76,7 +76,8 @@ install_xl2tpd() {
         return 1
     }
     
-    apt install -y xl2tpd iptables || {
+    # ИЗМЕНЕНО: Добавлен iptables-persistent
+    apt install -y xl2tpd iptables iptables-persistent || {
         echo -e "${BRIGHT_RED}Ошибка при установке пакетов!${NC}"
         return 1
     }
@@ -84,6 +85,12 @@ install_xl2tpd() {
     # Создаем резервную копию конфигов, если они существуют
     [ -f "/etc/xl2tpd/xl2tpd.conf" ] && cp "/etc/xl2tpd/xl2tpd.conf" "/etc/xl2tpd/xl2tpd.conf.bak"
     [ -f "/etc/ppp/options.xl2tpd" ] && cp "/etc/ppp/options.xl2tpd" "/etc/ppp/options.xl2tpd.bak"
+
+    # ИЗМЕНЕНО: Проверка переменных перед созданием конфига
+    [ -z "$DEFAULT_IFACE" ] && {
+        echo -e "${BRIGHT_RED}Ошибка: Не удалось определить сетевой интерфейс!${NC}"
+        return 1
+    }
 
     mkdir -p /etc/xl2tpd
     cat > /etc/xl2tpd/xl2tpd.conf <<EOL
@@ -124,7 +131,11 @@ EOL
     chmod 600 /etc/ppp/chap-secrets
 
     echo -e "${BRIGHT_YELLOW}Используется интерфейс: $DEFAULT_IFACE${NC}"
-    iptables -t nat -A POSTROUTING -s 10.2.2.0/24 -o $DEFAULT_IFACE -j MASQUERADE
+    
+    # ИЗМЕНЕНО: Проверка существования правила iptables
+    if ! iptables -t nat -C POSTROUTING -s 10.2.2.0/24 -o $DEFAULT_IFACE -j MASQUERADE 2>/dev/null; then
+        iptables -t nat -A POSTROUTING -s 10.2.2.0/24 -o $DEFAULT_IFACE -j MASQUERADE
+    fi
     
     mkdir -p /etc/iptables
     iptables-save > /etc/iptables/rules.v4
@@ -156,7 +167,11 @@ add_user() {
         if grep -q "^$username " /etc/ppp/chap-secrets; then
             echo -e "${BRIGHT_YELLOW}Пользователь $username уже существует!${NC}"
             read -p "Хотите изменить пароль для этого пользователя? (y/n): " change
-            [[ "$change" =~ ^[YyДд] ]] && sed -i "/^$username /d" /etc/ppp/chap-secrets || continue
+            # ИЗМЕНЕНО: Использование awk вместо sed
+            [[ "$change" =~ ^[YyДд] ]] && {
+                awk -v user="$username" '$1 != user' /etc/ppp/chap-secrets > /tmp/chap_temp && 
+                mv /tmp/chap_temp /etc/ppp/chap-secrets
+            } || continue
         fi
         break
     done
@@ -194,7 +209,9 @@ remove_user() {
         [ "$username" = "q" ] && return 0
         
         if grep -q "^$username " /etc/ppp/chap-secrets; then
-            sed -i "/^$username /d" /etc/ppp/chap-secrets
+            # ИЗМЕНЕНО: Использование awk вместо sed
+            awk -v user="$username" '$1 != user' /etc/ppp/chap-secrets > /tmp/chap_temp && 
+            mv /tmp/chap_temp /etc/ppp/chap-secrets
             systemctl restart xl2tpd
             echo -e "${BRIGHT_GREEN}Пользователь $username успешно удален!${NC}"
             return 0
@@ -225,6 +242,7 @@ remove_xl2tpd() {
     rm -f /etc/ppp/options.xl2tpd
     rm -f /etc/ppp/chap-secrets
 
+    # ИЗМЕНЕНО: Проверка существования правила перед удалением
     if iptables -t nat -C POSTROUTING -s 10.2.2.0/24 -o $DEFAULT_IFACE -j MASQUERADE 2>/dev/null; then
         iptables -t nat -D POSTROUTING -s 10.2.2.0/24 -o $DEFAULT_IFACE -j MASQUERADE
         iptables-save > /etc/iptables/rules.v4
