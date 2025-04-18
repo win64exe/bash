@@ -103,6 +103,7 @@ exclusive = yes
 ip range = 10.2.2.100-10.2.2.199
 local ip = 10.2.2.1
 length bit = yes
+require chap = yes
 require authentication = yes
 tunnel rws = 8
 name = l2tp-vpn
