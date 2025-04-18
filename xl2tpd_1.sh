@@ -102,6 +102,7 @@ auth file = /etc/ppp/chap-secrets
 exclusive = yes
 ip range = 10.2.2.100-10.2.2.199
 local ip = 10.2.2.1
+lac = 0.0.0.0-255.255.255.255
 length bit = yes
 require chap = yes
 require authentication = yes
@@ -114,10 +115,10 @@ EOL
     cat > /etc/ppp/options.xl2tpd <<EOL
 asyncmap 0
 auth
-mtu 1400
-mru 1400
-lcp-echo-interval 30
-lcp-echo-failure 4
+mtu 1500
+mru 1500
+lcp-echo-interval 60
+lcp-echo-failure 8
 noipx
 novj
 refuse-pap
