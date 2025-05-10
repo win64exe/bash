@@ -176,7 +176,7 @@ while true; do
             ;;
         2)
             echo -e "\n${YELLOW}=== Получение внешнего IP через sing-box tools ==="
-            sing-box tools fetch ifconfig.co -D /etc/sing-box/
+            sing-box tools fetch ifconfig.me -D /etc/sing-box/
             pause
             ;;
         3)
