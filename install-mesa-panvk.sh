@@ -2,7 +2,6 @@
 
 set -e
 
-# === 1. Установка зависимостей ===
 echo "[+] Установка зависимостей..."
 sudo apt update
 sudo apt install -y \
@@ -12,21 +11,18 @@ sudo apt install -y \
   libxcb-present-dev libxshmfence-dev libxxf86vm-dev \
   libwayland-dev wayland-protocols libgbm-dev libegl1-mesa-dev \
   libgles2-mesa-dev libzstd-dev libxml2-dev libvulkan-dev \
-  python3-pip
+  python3-pip python3-packaging
 
-# === 2. Установка дополнительных Python-пакетов для Meson ===
-echo "[+] Установка python3-meson и jinja2..."
-sudo pip3 install meson jinja2
+echo "[+] Установка Meson >= 1.2 из pip (вместо устаревшей версии в Debian 12)..."
+sudo pip3 install --upgrade meson jinja2
 
-# === 3. Скачиваем Mesa ===
-echo "[+] Клонирование Mesa (будет использована последняя стабильная версия)..."
+echo "[+] Клонирование Mesa (ветка main)..."
 git clone https://gitlab.freedesktop.org/mesa/mesa.git
 cd mesa
-git checkout mesa-24.1.1  # Можно обновить при необходимости
+# Ветка main содержит 25.1 (будущая релизная версия)
+git checkout main
 
-# === 4. Настройка сборки ===
-echo "[+] Настройка Meson-сборки..."
-
+echo "[+] Настройка сборки Mesa 25.1 с поддержкой PanVK..."
 mkdir -p builddir
 meson setup builddir \
   -Dprefix=/opt/mesa \
@@ -37,22 +33,23 @@ meson setup builddir \
   -Dglx=dri \
   -Dshared-glapi=true \
   -Dgles1=true \
-  -Dgles2=true
+  -Dgles2=true \
+  -Dopengl=true \
+  -Dvulkan=true
 
-# === 5. Сборка и установка ===
-echo "[+] Сборка Mesa (может занять 30+ минут)..."
+echo "[+] Сборка Mesa 25.1 (может занять длительное время)..."
 ninja -C builddir
-echo "[+] Установка Mesa в /opt/mesa..."
+
+echo "[+] Установка в /opt/mesa..."
 sudo ninja -C builddir install
 
-# === 6. Настройка переменных среды ===
-echo "[+] Добавление переменных среды в ~/.bashrc..."
+echo "[+] Настройка переменных окружения в ~/.bashrc..."
 echo 'export LD_LIBRARY_PATH=/opt/mesa/lib:$LD_LIBRARY_PATH' >> ~/.bashrc
 echo 'export LIBGL_DRIVERS_PATH=/opt/mesa/lib/dri' >> ~/.bashrc
 echo 'export VK_ICD_FILENAMES=/opt/mesa/share/vulkan/icd.d/panfrost_icd.aarch64.json' >> ~/.bashrc
 echo 'export VK_LAYER_PATH=/opt/mesa/share/vulkan/explicit_layer.d' >> ~/.bashrc
 
-# === 7. Готово ===
-echo "[✓] Установка завершена. Перезагрузите систему или выполните:"
+echo "[✓] Установка Mesa 25.1 завершена. Перезагрузите систему или выполните:"
 echo "    source ~/.bashrc"
-echo "Затем проверьте Vulkan командой: vulkaninfo | less"
+echo "Затем проверьте работу Vulkan:"
+echo "    vulkaninfo | grep panfrost"
