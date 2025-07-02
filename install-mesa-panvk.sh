@@ -5,7 +5,7 @@ sudo apt update
 sudo apt install -y \
   build-essential meson ninja-build python3-mako git bison flex \
   libdrm-dev libexpat1-dev libx11-dev libxext-dev libxdamage-dev \
-  libxfixes-dev libxcb-glx0-dev libxcb-dri2-dev libxcb-dri3-dev \
+  libxfixes-dev libxcb1-dev libxcb-glx0-dev libxcb-dri3-dev \
   libxcb-present-dev libxshmfence-dev libxxf86vm-dev \
   libwayland-dev wayland-protocols libgbm-dev libegl1-mesa-dev \
   libgles2-mesa-dev libzstd-dev libxml2-dev libvulkan-dev \
