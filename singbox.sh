@@ -91,13 +91,30 @@ check_latest_version() {
         return 1
     fi
     
-    # Получение текущей версии с улучшенной совместимостью
+    # Получение текущей версии с улучшенной совместимостью для OpenWRT
     if command -v sing-box >/dev/null 2>&1; then
-        # Пробуем разные способы получения версии
-        CURRENT_VERSION=$(sing-box version 2>/dev/null | awk '/version/{print $3}' 2>/dev/null)
-        if [ -z "$CURRENT_VERSION" ]; then
-            CURRENT_VERSION=$(sing-box version 2>/dev/null | sed -n 's/.*version \([0-9.]\+\).*/\1/p')
+        # Проверяем разные возможные варианты вывода версии
+        VERSION_OUTPUT=$(sing-box version 2>/dev/null)
+        if [ -n "$VERSION_OUTPUT" ]; then
+            # Первый способ: ищем версию в формате vX.X.X
+            CURRENT_VERSION=$(echo "$VERSION_OUTPUT" | grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+' | head -n1)
+            
+            # Второй способ: если не нашли, пробуем найти просто числовую версию
+            if [ -z "$CURRENT_VERSION" ]; then
+                CURRENT_VERSION=$(echo "$VERSION_OUTPUT" | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+' | head -n1)
+                # Добавляем префикс v если найдена версия без него
+                if [ -n "$CURRENT_VERSION" ]; then
+                    CURRENT_VERSION="v$CURRENT_VERSION"
+                fi
+            fi
+            
+            # Третий способ: парсим через awk по ключевому слову
+            if [ -z "$CURRENT_VERSION" ]; then
+                CURRENT_VERSION=$(echo "$VERSION_OUTPUT" | awk '/version/{for(i=1;i<=NF;i++) if($i ~ /[0-9]+\.[0-9]+\.[0-9]+/) {print "v" $i; exit}}')
+            fi
         fi
+        
+        # Если все методы не сработали
         if [ -z "$CURRENT_VERSION" ]; then
             CURRENT_VERSION="Не определена"
         fi
