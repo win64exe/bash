@@ -220,15 +220,19 @@ update_sing_box() {
     echo -e "${GREEN}Скачивание архива...${NC}"
     echo -e "${CYAN}URL: ${YELLOW}$DL_URL${NC}"
     
-    # Проверяем доступность файла сначала
-    if ! wget --spider --timeout=10 "$DL_URL" 2>/dev/null; then
-        echo -e "${RED}Ошибка: Файл недоступен по указанному URL!${NC}"
-        echo -e "${YELLOW}Проверьте:${NC}"
-        echo -e "${YELLOW}- Правильность версии: $LATEST_VERSION${NC}"
-        echo -e "${YELLOW}- Доступность GitHub${NC}"
-        rm -rf "$TEMP_DIR"
-        [ -f /etc/init.d/sing-box ] && /etc/init.d/sing-box start
-        return 1
+    # Проверяем доступность файла более надежным способом
+    echo -e "${CYAN}Проверка доступности файла...${NC}"
+    if ! curl -s --head --max-time 10 "$DL_URL" | grep -q "200 OK\|302 Found\|301 Moved"; then
+        # Если curl не сработал, пробуем wget с коротким таймаутом
+        if ! wget --spider --timeout=5 --tries=1 "$DL_URL" 2>/dev/null; then
+            echo -e "${RED}Ошибка: Файл недоступен по указанному URL!${NC}"
+            echo -e "${YELLOW}Проверьте:${NC}"
+            echo -e "${YELLOW}- Правильность версии: $LATEST_VERSION${NC}"
+            echo -e "${YELLOW}- Доступность GitHub${NC}"
+            echo -e "${YELLOW}Попробуем все равно скачать файл...${NC}"
+        fi
+    else
+        echo -e "${GREEN}Файл доступен для скачивания${NC}"
     fi
     
     # Основное скачивание с расширенными опциями
