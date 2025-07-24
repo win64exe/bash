@@ -53,24 +53,54 @@ detect_architecture() {
 check_latest_version() {
     echo -e "\n${YELLOW}=== Получение информации о последней версии ==="
     
-    # Используем более безопасный способ получения версии с таймаутом
-    LATEST_VERSION=$(curl -s --max-time 10 --retry 2 https://api.github.com/repos/SagerNet/sing-box/releases/latest | 
-        grep '"tag_name":' | head -n1 | sed -E 's/.*"([^"]+)".*/\1/')
-    
-    if [ -z "$LATEST_VERSION" ] || [ "$LATEST_VERSION" = "null" ]; then
-        echo -e "${RED}Ошибка: Не удалось получить информацию о последней версии!${NC}"
-        echo -e "${YELLOW}Проверьте подключение к интернету.${NC}"
+    # Проверяем сетевое соединение сначала
+    echo -e "${CYAN}Проверка сетевого соединения...${NC}"
+    if ! ping -c 1 -W 5 8.8.8.8 >/dev/null 2>&1; then
+        echo -e "${RED}Ошибка: Нет соединения с интернетом!${NC}"
+        echo -e "${YELLOW}Проверьте сетевые настройки и попробуйте снова.${NC}"
         return 1
     fi
     
-    # Проверка формата версии
-    if ! echo "$LATEST_VERSION" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+'; then
+    # Используем curl с улучшенными параметрами
+    echo -e "${CYAN}Получение информации о релизах...${NC}"
+    LATEST_VERSION=$(curl -s --max-time 15 --retry 3 --retry-delay 2 \
+        --connect-timeout 10 --user-agent "sing-box-updater/1.0" \
+        https://api.github.com/repos/SagerNet/sing-box/releases/latest | \
+        grep '"tag_name":' | head -n1 | sed 's/.*"tag_name":\s*"\([^"]*\)".*/\1/')
+    
+    if [ -z "$LATEST_VERSION" ] || [ "$LATEST_VERSION" = "null" ]; then
+        # Пробуем альтернативный способ через GitHub
+        echo -e "${YELLOW}Пробуем альтернативный способ получения версии...${NC}"
+        LATEST_VERSION=$(wget --timeout=15 --tries=3 -qO- \
+            https://github.com/SagerNet/sing-box/releases/latest 2>/dev/null | \
+            grep -o 'tag/v[0-9]\+\.[0-9]\+\.[0-9]\+' | head -n1 | sed 's/tag\///')
+    fi
+    
+    if [ -z "$LATEST_VERSION" ] || [ "$LATEST_VERSION" = "null" ]; then
+        echo -e "${RED}Ошибка: Не удалось получить информацию о последней версии!${NC}"
+        echo -e "${YELLOW}Возможные причины:${NC}"
+        echo -e "${YELLOW}- Проблемы с DNS (попробуйте изменить DNS на 8.8.8.8)${NC}"
+        echo -e "${YELLOW}- Блокировка GitHub в вашей сети${NC}"
+        echo -e "${YELLOW}- Временные проблемы с GitHub API${NC}"
+        return 1
+    fi
+    
+    # Проверка формата версии с улучшенной совместимостью
+    if ! echo "$LATEST_VERSION" | grep -q '^v[0-9]\+\.[0-9]\+\.[0-9]\+'; then
         echo -e "${RED}Ошибка: Получен некорректный формат версии: $LATEST_VERSION${NC}"
         return 1
     fi
     
+    # Получение текущей версии с улучшенной совместимостью
     if command -v sing-box >/dev/null 2>&1; then
-        CURRENT_VERSION=$(sing-box version 2>/dev/null | grep -oP 'version \K\S+' || echo "Не установлена")
+        # Пробуем разные способы получения версии
+        CURRENT_VERSION=$(sing-box version 2>/dev/null | awk '/version/{print $3}' 2>/dev/null)
+        if [ -z "$CURRENT_VERSION" ]; then
+            CURRENT_VERSION=$(sing-box version 2>/dev/null | sed -n 's/.*version \([0-9.]\+\).*/\1/p')
+        fi
+        if [ -z "$CURRENT_VERSION" ]; then
+            CURRENT_VERSION="Не определена"
+        fi
     else
         CURRENT_VERSION="Не установлена"
     fi
@@ -169,23 +199,55 @@ update_sing_box() {
         return 1
     }
     
-    # Скачивание с проверкой целостности
+    # Скачивание с проверкой целостности и улучшенными настройками
     echo -e "${GREEN}Скачивание архива...${NC}"
-    if ! wget --timeout=30 --tries=3 -O "$TEMP_DIR/sing-box.tar.gz" "$DL_URL"; then
-        echo -e "${RED}Ошибка при скачивании!${NC}"
+    echo -e "${CYAN}URL: ${YELLOW}$DL_URL${NC}"
+    
+    # Проверяем доступность файла сначала
+    if ! wget --spider --timeout=10 "$DL_URL" 2>/dev/null; then
+        echo -e "${RED}Ошибка: Файл недоступен по указанному URL!${NC}"
+        echo -e "${YELLOW}Проверьте:${NC}"
+        echo -e "${YELLOW}- Правильность версии: $LATEST_VERSION${NC}"
+        echo -e "${YELLOW}- Доступность GitHub${NC}"
         rm -rf "$TEMP_DIR"
         [ -f /etc/init.d/sing-box ] && /etc/init.d/sing-box start
         return 1
     fi
     
-    # Проверка размера файла
-    FILE_SIZE=$(stat -c%s "$TEMP_DIR/sing-box.tar.gz" 2>/dev/null || echo "0")
-    if [ "$FILE_SIZE" -lt 1000000 ]; then  # Меньше 1MB - подозрительно
-        echo -e "${RED}Ошибка: Скачанный файл слишком мал ($FILE_SIZE байт)!${NC}"
+    # Основное скачивание с расширенными опциями
+    if ! wget --timeout=60 --tries=3 --retry-connrefused --waitretry=5 \
+        --progress=bar:force --show-progress \
+        --user-agent="sing-box-updater/1.0" \
+        -O "$TEMP_DIR/sing-box.tar.gz" "$DL_URL"; then
+        echo -e "${RED}Ошибка при скачивании!${NC}"
+        echo -e "${YELLOW}Возможные причины:${NC}"
+        echo -e "${YELLOW}- Нестабильное соединение с интернетом${NC}"
+        echo -e "${YELLOW}- Блокировка GitHub в вашей сети${NC}"
+        echo -e "${YELLOW}- Временные проблемы с GitHub${NC}"
         rm -rf "$TEMP_DIR"
         [ -f /etc/init.d/sing-box ] && /etc/init.d/sing-box start
         return 1
     fi
+    
+    # Проверка размера файла с улучшенной совместимостью
+    if command -v stat >/dev/null 2>&1; then
+        FILE_SIZE=$(stat -c%s "$TEMP_DIR/sing-box.tar.gz" 2>/dev/null || echo "0")
+    else
+        # Альтернативный способ для систем без stat
+        FILE_SIZE=$(ls -l "$TEMP_DIR/sing-box.tar.gz" 2>/dev/null | awk '{print $5}' || echo "0")
+    fi
+    
+    echo -e "${CYAN}Размер скачанного файла: ${YELLOW}$FILE_SIZE${NC} байт"
+    
+    if [ "$FILE_SIZE" -lt 1000000 ]; then  # Меньше 1MB - подозрительно
+        echo -e "${RED}Ошибка: Скачанный файл слишком мал ($FILE_SIZE байт)!${NC}"
+        echo -e "${YELLOW}Ожидается размер не менее 1MB для архива sing-box${NC}"
+        rm -rf "$TEMP_DIR"
+        [ -f /etc/init.d/sing-box ] && /etc/init.d/sing-box start
+        return 1
+    fi
+    
+    echo -e "${GREEN}Файл успешно скачан и проверен${NC}"
     
     # Распаковка
     echo -e "${GREEN}Распаковка архива...${NC}"
@@ -277,9 +339,50 @@ show_menu() {
     echo -e "${GREEN}9.${NC} Установить ITDog sing-box"
     echo -e "${CYAN}-------------------------------"
     echo -e "${GREEN}10.${NC} Обновить sing-box (автоопределение)"
+    echo -e "${GREEN}11.${NC} Диагностика сети"
     echo -e "${CYAN}-------------------------------"
     echo -e "${GREEN}0.${NC} Выход"
     echo -e "${CYAN}===============================${NC}"
+}
+
+# Функция диагностики сети
+network_diagnostics() {
+    echo -e "\n${YELLOW}=== Диагностика сетевого подключения ==="
+    
+    # Проверка базового подключения
+    echo -e "${CYAN}1. Проверка подключения к интернету...${NC}"
+    if ping -c 1 -W 5 8.8.8.8 >/dev/null 2>&1; then
+        echo -e "${GREEN}✓ Базовое подключение работает${NC}"
+    else
+        echo -e "${RED}✗ Нет базового подключения к интернету${NC}"
+        return 1
+    fi
+    
+    # Проверка DNS
+    echo -e "${CYAN}2. Проверка DNS...${NC}"
+    if nslookup github.com >/dev/null 2>&1 || host github.com >/dev/null 2>&1; then
+        echo -e "${GREEN}✓ DNS работает${NC}"
+    else
+        echo -e "${RED}✗ Проблемы с DNS${NC}"
+        echo -e "${YELLOW}Попробуйте изменить DNS на 8.8.8.8${NC}"
+    fi
+    
+    # Проверка доступа к GitHub
+    echo -e "${CYAN}3. Проверка доступа к GitHub...${NC}"
+    if wget --spider --timeout=10 https://github.com 2>/dev/null; then
+        echo -e "${GREEN}✓ GitHub доступен${NC}"
+    else
+        echo -e "${RED}✗ GitHub недоступен${NC}"
+        echo -e "${YELLOW}Возможна блокировка или проблемы с провайдером${NC}"
+    fi
+    
+    # Проверка GitHub API
+    echo -e "${CYAN}4. Проверка GitHub API...${NC}"
+    if curl -s --max-time 10 https://api.github.com/rate_limit >/dev/null 2>&1; then
+        echo -e "${GREEN}✓ GitHub API доступен${NC}"
+    else
+        echo -e "${RED}✗ GitHub API недоступен${NC}"
+    fi
 }
 
 # Функция для паузы
@@ -383,6 +486,10 @@ while true; do
         10)
             echo -e "\n${YELLOW}=== Обновление sing-box ==="
             update_sing_box
+            pause
+            ;;
+        11)
+            network_diagnostics
             pause
             ;;
         0)
