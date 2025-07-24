@@ -19,11 +19,21 @@ fi
 
 # Проверка наличия необходимых утилит
 check_requirements() {
-    local required_commands=("curl" "wget" "tar" "sing-box" "logread")
+    local required_commands=("curl" "wget" "tar")
+    local optional_commands=("sing-box" "logread")
+    
+    # Проверка обязательных команд
     for cmd in "${required_commands[@]}"; do
         if ! command -v "$cmd" >/dev/null 2>&1; then
             echo -e "${RED}Ошибка: Команда $cmd не найдена. Пожалуйста, установите её.${NC}"
             exit 1
+        fi
+    done
+    
+    # Проверка опциональных команд (для некоторых функций)
+    for cmd in "${optional_commands[@]}"; do
+        if ! command -v "$cmd" >/dev/null 2>&1; then
+            echo -e "${YELLOW}Предупреждение: Команда $cmd не найдена. Некоторые функции могут быть недоступны.${NC}"
         fi
     done
 }
@@ -42,12 +52,28 @@ detect_architecture() {
 # Функция для проверки последней версии
 check_latest_version() {
     echo -e "\n${YELLOW}=== Получение информации о последней версии ==="
-    LATEST_VERSION=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-    if [ -z "$LATEST_VERSION" ]; then
+    
+    # Используем более безопасный способ получения версии с таймаутом
+    LATEST_VERSION=$(curl -s --max-time 10 --retry 2 https://api.github.com/repos/SagerNet/sing-box/releases/latest | 
+        grep '"tag_name":' | head -n1 | sed -E 's/.*"([^"]+)".*/\1/')
+    
+    if [ -z "$LATEST_VERSION" ] || [ "$LATEST_VERSION" = "null" ]; then
         echo -e "${RED}Ошибка: Не удалось получить информацию о последней версии!${NC}"
+        echo -e "${YELLOW}Проверьте подключение к интернету.${NC}"
         return 1
     fi
-    CURRENT_VERSION=$(sing-box version 2>/dev/null | grep -oP 'version \K\S+' || echo "Не установлена")
+    
+    # Проверка формата версии
+    if ! echo "$LATEST_VERSION" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+'; then
+        echo -e "${RED}Ошибка: Получен некорректный формат версии: $LATEST_VERSION${NC}"
+        return 1
+    fi
+    
+    if command -v sing-box >/dev/null 2>&1; then
+        CURRENT_VERSION=$(sing-box version 2>/dev/null | grep -oP 'version \K\S+' || echo "Не установлена")
+    else
+        CURRENT_VERSION="Не установлена"
+    fi
     
     echo -e "${CYAN}Текущая версия: ${YELLOW}${CURRENT_VERSION}${NC}"
     echo -e "${CYAN}Последняя версия: ${YELLOW}${LATEST_VERSION}${NC}"
@@ -136,33 +162,82 @@ update_sing_box() {
     DL_URL="https://github.com/SagerNet/sing-box/releases/download/${LATEST_VERSION}/sing-box-${LATEST_VERSION#v}-linux-${ARCH}${PKG}.tar.gz"
     echo -e "${CYAN}Скачивание: ${YELLOW}${DL_URL}${NC}"
     
-    # Скачивание
-    if ! wget -O /tmp/sing-box.tar.gz "$DL_URL"; then
+    # Создаем временную директорию
+    TEMP_DIR=$(mktemp -d) || {
+        echo -e "${RED}Ошибка: Не удалось создать временную директорию!${NC}"
+        [ -f /etc/init.d/sing-box ] && /etc/init.d/sing-box start
+        return 1
+    }
+    
+    # Скачивание с проверкой целостности
+    echo -e "${GREEN}Скачивание архива...${NC}"
+    if ! wget --timeout=30 --tries=3 -O "$TEMP_DIR/sing-box.tar.gz" "$DL_URL"; then
         echo -e "${RED}Ошибка при скачивании!${NC}"
+        rm -rf "$TEMP_DIR"
+        [ -f /etc/init.d/sing-box ] && /etc/init.d/sing-box start
+        return 1
+    fi
+    
+    # Проверка размера файла
+    FILE_SIZE=$(stat -c%s "$TEMP_DIR/sing-box.tar.gz" 2>/dev/null || echo "0")
+    if [ "$FILE_SIZE" -lt 1000000 ]; then  # Меньше 1MB - подозрительно
+        echo -e "${RED}Ошибка: Скачанный файл слишком мал ($FILE_SIZE байт)!${NC}"
+        rm -rf "$TEMP_DIR"
         [ -f /etc/init.d/sing-box ] && /etc/init.d/sing-box start
         return 1
     fi
     
     # Распаковка
     echo -e "${GREEN}Распаковка архива...${NC}"
-    if ! tar -xzf /tmp/sing-box.tar.gz -C /tmp/; then
+    if ! tar -xzf "$TEMP_DIR/sing-box.tar.gz" -C "$TEMP_DIR/"; then
         echo -e "${RED}Ошибка при распаковке!${NC}"
-        rm -f /tmp/sing-box.tar.gz
+        rm -rf "$TEMP_DIR"
         [ -f /etc/init.d/sing-box ] && /etc/init.d/sing-box start
         return 1
     fi
     
+    # Проверка наличия исполняемого файла
+    EXTRACTED_DIR="$TEMP_DIR/sing-box-${LATEST_VERSION#v}-linux-${ARCH}${PKG}"
+    if [ ! -f "$EXTRACTED_DIR/sing-box" ]; then
+        echo -e "${RED}Ошибка: Исполняемый файл не найден в архиве!${NC}"
+        rm -rf "$TEMP_DIR"
+        [ -f /etc/init.d/sing-box ] && /etc/init.d/sing-box start
+        return 1
+    fi
+    
+    # Создание резервной копии текущей версии
+    if [ -f /usr/bin/sing-box ]; then
+        echo -e "${GREEN}Создание резервной копии...${NC}"
+        cp /usr/bin/sing-box /usr/bin/sing-box.backup.$(date +%Y%m%d_%H%M%S) || {
+            echo -e "${YELLOW}Предупреждение: Не удалось создать резервную копию${NC}"
+        }
+    fi
+    
     # Установка
     echo -e "${GREEN}Установка новой версии...${NC}"
-    if ! mv /tmp/sing-box-${LATEST_VERSION#v}-linux-${ARCH}${PKG}/sing-box /usr/bin/; then
-        echo -e "${RED}Ошибка при перемещении файла!${NC}"
-        rm -f /tmp/sing-box.tar.gz
-        rm -rf /tmp/sing-box-${LATEST_VERSION#v}-linux-${ARCH}${PKG}
+    if ! cp "$EXTRACTED_DIR/sing-box" /usr/bin/sing-box; then
+        echo -e "${RED}Ошибка при копировании файла!${NC}"
+        rm -rf "$TEMP_DIR"
         [ -f /etc/init.d/sing-box ] && /etc/init.d/sing-box start
         return 1
     fi
     
     chmod +x /usr/bin/sing-box
+    
+    # Проверка установки
+    if ! /usr/bin/sing-box version >/dev/null 2>&1; then
+        echo -e "${RED}Ошибка: Установленная версия не работает!${NC}"
+        # Восстановление из резервной копии если возможно
+        BACKUP_FILE=$(ls -t /usr/bin/sing-box.backup.* 2>/dev/null | head -n1)
+        if [ -n "$BACKUP_FILE" ]; then
+            echo -e "${YELLOW}Восстановление из резервной копии...${NC}"
+            cp "$BACKUP_FILE" /usr/bin/sing-box
+            chmod +x /usr/bin/sing-box
+        fi
+        rm -rf "$TEMP_DIR"
+        [ -f /etc/init.d/sing-box ] && /etc/init.d/sing-box start
+        return 1
+    fi
     
     # Запуск сервиса
     if [ -f /etc/init.d/sing-box ]; then
@@ -179,9 +254,11 @@ update_sing_box() {
     
     echo -e "\n${GREEN}✅ Sing-box успешно обновлен до версии ${LATEST_VERSION}${NC}"
     
-    # Очистка
-    rm -f /tmp/sing-box.tar.gz
-    rm -rf /tmp/sing-box-${LATEST_VERSION#v}-linux-${ARCH}${PKG}
+    # Очистка временных файлов
+    rm -rf "$TEMP_DIR"
+    
+    # Очистка старых резервных копий (оставляем только 3 последние)
+    find /usr/bin -name "sing-box.backup.*" -type f | sort -r | tail -n +4 | xargs rm -f 2>/dev/null || true
 }
 
 # Функция для отображения меню
@@ -283,14 +360,22 @@ while true; do
             ;;
         8)
             echo -e "\n${YELLOW}=== Проверка DNS на подмену ==="
-            if ! wget -O - https://raw.githubusercontent.com/itdoginfo/domain-routing-openwrt/master/getdomains-check.sh | sh -s dns; then
+            echo -e "${YELLOW}Скачивание и выполнение скрипта проверки DNS...${NC}"
+            SCRIPT_URL="https://raw.githubusercontent.com/itdoginfo/domain-routing-openwrt/master/getdomains-check.sh"
+            if wget --timeout=10 -q -O - "$SCRIPT_URL" | sh -s dns; then
+                echo -e "${GREEN}Проверка DNS завершена${NC}"
+            else
                 echo -e "${RED}Ошибка при выполнении проверки DNS!${NC}"
             fi
             pause
             ;;
         9)
             echo -e "\n${YELLOW}=== Установка ITDog sing-box ==="
-            if ! sh <(wget -O - https://raw.githubusercontent.com/itdoginfo/domain-routing-openwrt/master/getdomains-install.sh); then
+            echo -e "${YELLOW}Скачивание и выполнение скрипта установки ITDog...${NC}"
+            INSTALL_URL="https://raw.githubusercontent.com/itdoginfo/domain-routing-openwrt/master/getdomains-install.sh"
+            if wget --timeout=10 -q -O - "$INSTALL_URL" | sh; then
+                echo -e "${GREEN}Установка ITDog завершена${NC}"
+            else
                 echo -e "${RED}Ошибка при установке ITDog sing-box!${NC}"
             fi
             pause
