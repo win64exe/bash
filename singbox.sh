@@ -61,12 +61,41 @@ check_latest_version() {
         return 1
     fi
     
-    # Используем curl с улучшенными параметрами
-    echo -e "${CYAN}Получение информации о релизах...${NC}"
-    LATEST_VERSION=$(curl -s --max-time 15 --retry 3 --retry-delay 2 \
-        --connect-timeout 10 --user-agent "sing-box-updater/1.0" \
+# Пробуем несколько способов получения версии
+    echo -e "${CYAN}Поиск последнего стабильного релиза...${NC}"
+    
+    # Метод 1: Через GitHub API
+    LATEST_VERSION=$(curl -s --max-time 10 --retry 2 \
+        --connect-timeout 8 --user-agent "sing-box-updater/1.0" \
         https://api.github.com/repos/SagerNet/sing-box/releases/latest | \
-        grep '"tag_name":' | head -n1 | sed 's/.*"tag_name":\s*"\([^"]*\)".*/\1/')
+        grep '"tag_name":' | head -n1 | sed 's/.*"tag_name":[[:space:]]*"\([^"]*\)".*/\1/')
+    
+    # Метод 2: Парсинг страницы релизов
+    if [ -z "$LATEST_VERSION" ] || [ "$LATEST_VERSION" = "null" ]; then
+        echo -e "${YELLOW}Пробуем парсинг страницы релизов...${NC}"
+        RELEASE_PAGE=$(curl -s --max-time 15 --retry 2 \
+            --connect-timeout 10 --user-agent "sing-box-updater/1.0" \
+            https://github.com/SagerNet/sing-box/releases)
+        
+        # Ищем паттерн с "Latest" меткой
+        LATEST_VERSION=$(echo "$RELEASE_PAGE" | grep -A5 -B5 "Latest" | \
+            grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+' | head -n1)
+    fi
+    
+    # Метод 3: Простое перенаправление на latest
+    if [ -z "$LATEST_VERSION" ] || [ "$LATEST_VERSION" = "null" ]; then
+        echo -e "${YELLOW}Пробуем через перенаправление...${NC}"
+        LATEST_VERSION=$(wget --timeout=10 --tries=2 -qO- \
+            https://github.com/SagerNet/sing-box/releases/latest 2>/dev/null | \
+            grep -o 'tag/v[0-9]\+\.[0-9]\+\.[0-9]\+' | head -n1 | sed 's/tag\///')
+    fi
+    
+    # Проверка на пустоту
+    if [ -z "$LATEST_VERSION" ] || [ "$LATEST_VERSION" = "null" ]; then
+        echo -e "${RED}Ошибка: Не удалось найти стабильный релиз!${NC}"
+        echo -e "${YELLOW}Попробуем вручную установку v1.11.15...${NC}"
+        LATEST_VERSION="v1.11.15"
+    fi
     
     if [ -z "$LATEST_VERSION" ] || [ "$LATEST_VERSION" = "null" ]; then
         # Пробуем альтернативный способ через GitHub
@@ -206,7 +235,7 @@ update_sing_box() {
     fi
     
     # Формирование URL для скачивания
-    DL_URL="https://github.com/SagerNet/sing-box/releases/download/${LATEST_VERSION}/sing-box-${LATEST_VERSION#v}-linux-${ARCH}${PKG}.tar.gz"
+DL_URL="https://github.com/SagerNet/sing-box/releases/download/${LATEST_VERSION}/sing-box-${LATEST_VERSION}-linux-${ARCH}${PKG}.tar.gz"
     echo -e "${CYAN}Скачивание: ${YELLOW}${DL_URL}${NC}"
     
     # Создаем временную директорию
