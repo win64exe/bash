@@ -50,7 +50,7 @@ apt install sysbench
 sysbench cpu run --threads=1
 ```
 
-**Сайт для мониторинга и анализа маршрутов BGP в Интернете**
+**Сайт для анализа маршрутов BGP в Интернете**
 ```
 https://bgp.tools
 ```
