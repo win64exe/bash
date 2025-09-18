@@ -1,12 +1,56 @@
-<h1 align="center">Hi 👋, I'm Alexey</h1>
-<h3 align="center">IT support engineer</h3>
+**A Bench.sh Script By Teddysun - Modify by DigneZ**
+```
+wget -qO- bench.gig.ovh | bash
+```
 
-<p align="left"> <img src="https://komarev.com/ghpvc/?username=win64exe&label=Profile%20views&color=0e75b6&style=flat" alt="win64exe" /> </p>
+**Тестирование скорости к РФ провайдерам через iperf3**
+```
+apt install iperf3
+bash <(wget -qO- https://github.com/itdoginfo/russian-iperf3-servers/raw/main/speedtest.sh)
+```
 
-<h3 align="left">Connect with me:</h3>
-<p align="left">
-<a href="https://www.youtube.com/c/gameit1" target="blank"><img align="center" src="https://raw.githubusercontent.com/rahuldkjain/github-profile-readme-generator/master/src/images/icons/Social/youtube.svg" alt="gameit1" height="30" width="40" /></a>
-</p>
+**IP region проверка геолокиции ip адресса VPS**
+```
+bash <(wget -qO - https://github.com/vernette/ipregion/raw/master/ipregion.sh)
+```
 
-<h3 align="left">Languages and Tools:</h3>
-<p align="left"> <a href="https://www.gnu.org/software/bash/" target="_blank" rel="noreferrer"> <img src="https://www.vectorlogo.zone/logos/gnu_bash/gnu_bash-icon.svg" alt="bash" width="40" height="40"/> </a> <a href="https://www.blender.org/" target="_blank" rel="noreferrer"> <img src="https://download.blender.org/branding/community/blender_community_badge_white.svg" alt="blender" width="40" height="40"/> </a> <a href="https://getbootstrap.com" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/bootstrap/bootstrap-plain-wordmark.svg" alt="bootstrap" width="40" height="40"/> </a> <a href="https://www.w3schools.com/css/" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/css3/css3-original-wordmark.svg" alt="css3" width="40" height="40"/> </a> <a href="https://dart.dev" target="_blank" rel="noreferrer"> <img src="https://www.vectorlogo.zone/logos/dartlang/dartlang-icon.svg" alt="dart" width="40" height="40"/> </a> <a href="https://www.docker.com/" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/docker/docker-original-wordmark.svg" alt="docker" width="40" height="40"/> </a> <a href="https://flutter.dev" target="_blank" rel="noreferrer"> <img src="https://www.vectorlogo.zone/logos/flutterio/flutterio-icon.svg" alt="flutter" width="40" height="40"/> </a> <a href="https://www.w3.org/html/" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/html5/html5-original-wordmark.svg" alt="html5" width="40" height="40"/> </a> <a href="https://www.linux.org/" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/linux/linux-original.svg" alt="linux" width="40" height="40"/> </a> <a href="https://www.mysql.com/" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/mysql/mysql-original-wordmark.svg" alt="mysql" width="40" height="40"/> </a> <a href="https://www.photoshop.com/en" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/photoshop/photoshop-line.svg" alt="photoshop" width="40" height="40"/> </a> <a href="https://www.php.net" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/php/php-original.svg" alt="php" width="40" height="40"/> </a> <a href="https://www.postgresql.org" target="_blank" rel="noreferrer"> <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/postgresql/postgresql-original-wordmark.svg" alt="postgresql" width="40" height="40"/> </a> <a href="https://tailwindcss.com/" target="_blank" rel="noreferrer"> <img src="https://www.vectorlogo.zone/logos/tailwindcss/tailwindcss-icon.svg" alt="tailwind" width="40" height="40"/> </a> </p>
+**Yabs бенчмарк, информация о системе и првоерка скорости к зарубежным провайдерам**
+```
+curl -sL yabs.sh | bash -s -- -4
+```
+
+**Параметры сервера и проверка скорости к зарубежным провайдерам (Старая версия через SpeedTest)**
+```
+wget -qO- bench.sh | bash
+```
+
+ **Проверка IP сервера на блокировки зарубежными сервисами**
+```
+bash <(curl -Ls IP.Check.Place) -l en
+```
+
+**Censorcheck проверяет доступность популярных сайтов**
+```
+wget https://github.com/vernette/censorcheck/raw/master/censorcheck.sh && chmod +x censorcheck.sh && ./censorcheck.sh
+```
+
+**Тестирование региональных ограничений для потоковых платформ и игр**
+```
+bash <(curl -L -s https://bench.gig.ovh/multi_check_ru.sh)
+```
+
+**Проверка блокировки аудио в Instagram:**
+```
+bash <(curl -L -s https://bench.openode.xyz/checker_inst.sh)
+```
+
+**Тест на процессор, можно понять примерно какой процент cpu выделили**
+```
+apt install sysbench
+sysbench cpu run --threads=1
+```
+
+
+```
+bash <(curl -Ls https://raw.githubusercontent.com/eGamesAPI/remnawave-reverse-proxy/refs/heads/main/install_remnawave.sh)
+```
