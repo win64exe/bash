@@ -49,8 +49,3 @@ bash <(curl -L -s https://bench.openode.xyz/checker_inst.sh)
 apt install sysbench
 sysbench cpu run --threads=1
 ```
-
-
-```
-bash <(curl -Ls https://raw.githubusercontent.com/eGamesAPI/remnawave-reverse-proxy/refs/heads/main/install_remnawave.sh)
-```
