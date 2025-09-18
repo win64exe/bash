@@ -49,3 +49,8 @@ bash <(curl -L -s https://bench.openode.xyz/checker_inst.sh)
 apt install sysbench
 sysbench cpu run --threads=1
 ```
+
+**Сайт для мониторинга и анализа маршрутов BGP в Интернете**
+```
+https://bgp.tools
+```
