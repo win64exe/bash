@@ -14,7 +14,7 @@ bash <(wget -qO- https://github.com/itdoginfo/russian-iperf3-servers/raw/main/sp
 bash <(wget -qO - https://github.com/vernette/ipregion/raw/master/ipregion.sh)
 ```
 
-**Yabs бенчмарк, информация о системе и првоерка скорости к зарубежным провайдерам**
+**Yabs бенчмарк, информация о системе и проверка скорости к зарубежным провайдерам**
 ```
 curl -sL yabs.sh | bash -s -- -4
 ```
