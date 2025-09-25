@@ -55,7 +55,7 @@ sysbench cpu run --threads=1
 https://bgp.tools
 ```
 
-**Сайт для анализа ping, mtr, dig, BGP looking glass **
+**Сайт для анализа ping, mtr, dig, BGP looking glass**
 ```
 https://ping.pe
 ```
