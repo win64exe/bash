@@ -55,7 +55,22 @@ sysbench cpu run --threads=1
 https://bgp.tools
 ```
 
+**Установка Docker**
+```
+curl -fsSL https://get.docker.com/ | sh
+```
+
 **Сайт для анализа ping, mtr, dig, BGP looking glass**
 ```
 https://ping.pe
+```
+
+**Включение BBR**
+```
+wget -qO- https://raw.githubusercontent.com/VadimBoev/bbr/main/enable_bbr.sh | bash
+```
+
+**DPI Detector**
+```
+docker run --rm -it --pull=always ghcr.io/runnin4ik/dpi-detector:latest
 ```
